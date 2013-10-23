@@ -62,7 +62,8 @@ def lonAxis( mv ):
     return lon_axis
 
 def levAxis( mv ):
-    "returns the level axis, if any, of a variable mv"
+    "returns the elevation/depth axis (i.e. 'Z' axix), if any, of a variable mv"
+    "As far as I know, no variable has both a 'depth' and an 'elevation'"
     if mv is None: return None
     lev_axis = None
     for ax in allAxes(mv):
@@ -70,6 +71,12 @@ def levAxis( mv ):
             lev_axis = ax
             break
         if ax.id=='plev':
+            lev_axis = ax
+            break
+         if ax.id=='levlak':
+            lev_axis = ax
+            break
+         if ax.id=='levgrnd':
             lev_axis = ax
             break
     return lev_axis
