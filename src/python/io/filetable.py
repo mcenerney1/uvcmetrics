@@ -4,7 +4,7 @@
 #   file_id,  variable_id,  time_range,  lat_range,  lon_range,  level_range
 # subject to change!
 
-import sys, os, cdms2, pprint
+import sys, os, cdms2
 
 class drange:
    def __init__( self, low=None, high=None, units=None ):

@@ -6,12 +6,14 @@
 # This is basically a simplified version of plot_data.py.
 
 import cdms2, math
+from options import Options
 from metrics.io.filetable import *
 from metrics.computation.reductions import *
 from metrics.amwg.derivations.oaht import *
 from metrics.amwg.derivations.ncl_isms import *
 from metrics.amwg.derivations.vertical import *
 from pprint import pprint
+from metrics.frontend.options import *
 
 from plot_data import derived_var, plotspec
 from cdutil.times import Seasons

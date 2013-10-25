@@ -63,8 +63,9 @@ class Options():
       self._opts['yearly'] = False
       self._opts['json'] = False
       self._opts['netcdf'] = False
-      self._opts['climatologies'] = False
-      self._opts['plots'] = False
+      self._opts['climatologies'] = True
+      self._opts['plots'] = True
+      self._opts['precomputed'] = False
       self._opts['times'] = []
       self._opts['model'] = None
       self._opts['packages'] = None
@@ -74,6 +75,7 @@ class Options():
       self._opts['reltime'] = None
       self._opts['bounds'] = None
       self._opts['dsnames'] = []
+      self._opts['filter'] = None
 
 
    def printsomething(self):
@@ -84,20 +86,37 @@ class Options():
          description='UV-CDAT Climate Modeling Diagnostics', 
          usage='%(prog)s path1 [path2] [options]')
 
-      parser.add_argument('--path', '-p', action='append', nargs=1, required=True)
-      parser.add_argument('--model', '-m', nargs=1, choices=self.all_models )
-      parser.add_argument('--filter', '-f', nargs=1)
-      parser.add_argument('--package', '-k', nargs='+')
-      parser.add_argument('--sets', '-s', nargs='+') 
-      parser.add_argument('--vars', '-v', nargs='+') 
-      parser.add_argument('--list', '-l', nargs=1, choices=['sets', 'vars', 'variables', 'packages', 'models', 'model', 'package'])
-      parser.add_argument('--nc', action='store_true') #no compression, add self state
-      parser.add_argument('--output', '-o', nargs=1)
-      parser.add_argument('--seasons', nargs='+', choices=self.all_seasons) # same
-      parser.add_argument('--years', nargs='+') # same
-      parser.add_argument('--months', nargs='+', choices=self.all_months) # same
-      parser.add_argument('--climatologies', '-c', action='store_true') # same
-      parser.add_argument('--plots', '-t', action='store_true') # same
+      parser.add_argument('--path', '-p', action='append', nargs=1, required=True, 
+         help="Path to dataset(s). At least one path is required.")
+      parser.add_argument('--model', '-m', nargs=1, choices=self.all_models, required=True , 
+         help="The model type. Current valid options are 'land' and 'atmosphere'")
+      parser.add_argument('--filter', '-f', nargs=1, 
+         help="A filespec filter. This will be applied to the dataset path(s) to narrow down file choices.")
+      parser.add_argument('--package', '-k', nargs='+', 
+         help="The diagnostic packages to run against the dataset(s). Multiple packages can be specified.")
+      parser.add_argument('--sets', '-s', nargs='+', 
+         help="The sets within a diagnostic package to run. Multiple sets can be specified. If multiple packages were specified, the sets specified will be searched for in each package") 
+      parser.add_argument('--vars', '-v', nargs='+', 
+         help="Specify variables of interest to process.") 
+      parser.add_argument('--list', '-l', nargs=1, choices=['sets', 'variables', 'packages', 'models'], 
+         help="Determine which models, packages, sets, and variables are available")
+      parser.add_argument('--nc', action='store_true', 
+         help="Turn off netCDF compression. This can be required for other utilities to be able to process the output files (e.g. parallel netCDF based tools") #no compression, add self state
+      parser.add_argument('--output', '-o', nargs=1, 
+         help="Specify an output base name. Typically, seasonal information will get postpended to this. For example -o myout will generate myout-JAN.nc, myout-FEB.nc, etc")
+      parser.add_argument('--seasons', nargs='+', choices=self.all_seasons,
+         help="Specify which seasons to generate climatoogies for")
+      parser.add_argument('--years', nargs='+',
+         help="Specify which years to include when generating climatologies") 
+      parser.add_argument('--months', nargs='+', choices=self.all_months,
+         help="Specify which months to generate climatologies for")
+      parser.add_argument('--climatologies', '-c', nargs=1, choices=['no','yes'],
+         help="Specifies whether or not climatologies should be generated")
+      parser.add_argument('--plots', '-t', nargs=1, choices=['no','yes'],
+         help="Specifies whether or not plots should be generated")
+      parser.add_argument('--plottype', nargs=1)
+      parser.add_argument('--precomputed', nargs=1, choices=['no','yes'], 
+         help="Specifies whether standard climatologies are stored with the dataset (*-JAN.nc, *-FEB.nc, ... *-DJF.nc, *-year0.nc, etc")
       parser.add_argument('--json', '-j', action='store_true') # same
       parser.add_argument('--netcdf', '-n', action='store_true') # same
       parser.add_argument('--seasonally', action='store_true')
@@ -115,9 +134,22 @@ class Options():
       self._opts['monthly'] = args.monthly
       self._opts['json'] = args.json
       self._opts['netcdf'] = args.netcdf
+      if(self._opts['plots'] != None):
+         if(self._opts['plots'] == 'no'):
+            args.plots = False
+         else:
+            args.plots = True
+
       self._opts['plots'] = args.plots
-      self._opts['climatologies'] = args.climatologies
+
+      if(self._opts['climatologies'] != None):
+         if(self._opts['climatologies'] == 'no'):
+            args.climatologies = False
+         else:
+            args.climatologies = True
+
       self._opts['verbose'] = args.verbose
+      self._opts['filter'] = args.filter
 
       
       if(args.name != None):
@@ -220,10 +252,10 @@ class Options():
             self._opts['times'] = self._opts['times']+slist
 
       if(args.list != None):
-         if args.list[0] == 'models' or args.list[0] == 'model':
+         if args.list[0] == 'models':
             print "Available models: ", self.all_models
 
-         if args.list[0] == 'packages' or args.list[0] == 'package':
+         if args.list[0] == 'packages':
             if self._opts['model'] == None:
                print "Please specify model type before requesting packages"
                quit()
@@ -232,7 +264,7 @@ class Options():
             for n in self.all_packages[self._opts['model']]:
                print n
 
-         if args.list[0] == 'sets' or args.list[0] == 'set':
+         if args.list[0] == 'sets':
             if self._opts['model'] == None:
                print "Please specify model type before requesting available diags sets"
                quit()
@@ -245,7 +277,7 @@ class Options():
                   print n['id']
                
 
-         if args.list[0] == 'vars' or args.list[0] == 'variables':
+         if args.list[0] == 'variables':
             if self._opts['model'] == None:
                print "Please specify model type before requesting available variables"
                quit()
@@ -259,8 +291,8 @@ class Options():
             print "Not sure how to list variables yet; requires knowledge of derived variables from individual packages"
 
 
-
-o = Options()
-o.processCmdLine()
-print o._opts
+if __name__ == '__main__':
+   o = Options()
+   o.processCmdLine()
+   print o._opts
 
