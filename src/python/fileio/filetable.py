@@ -65,15 +65,16 @@ class ftrow:
              self.timerange.__repr__(), self.latrange.__repr__(), self.lonrange.__repr__() )
 
 
-def get_datafile_filefmt( dfile, get_them_all=False ):
+def get_datafile_filefmt( dfile, varlist):
     """dfile is an open datafile.  If the file type is recognized,
     then this will return an object with methods needed to support that file type."""
-    if hasattr(dfile,'source') and ( dfile.source[0:3]=='CAM' or dfile.source[0:4]=='CCSM'\
-           or dfile.source[0:4]=='CESM' ):
+    if hasattr(dfile, 'source') and \
+      (dfile.source.find('CAM') or dfile.source.fine('CCSM') or \
+       dfile.source.find('CESM') or dfile.source.find('CLM')): # is there no better way?
        if hasattr(dfile,'season') or dfile.id[-9:]=="_climo.nc":
-          return NCAR_climo_filefmt( dfile, get_them_all )
+          return NCAR_climo_filefmt( dfile, varlist )
        else:
-          return NCAR_filefmt( dfile, get_them_all )
+          return NCAR_filefmt( dfile, varlist)
        # Note that NCAR Histoy Tape files are marked as supporting the CF Conventions
        # and do so, but it's minimal, without most of the useful CF features (e.g.
        # where are bounds for the lat axis?).
@@ -85,9 +86,9 @@ def get_datafile_filefmt( dfile, get_them_all=False ):
        return CF_filefmt( dfile )
     else:
        if hasattr(dfile,'season') or dfile.id[-9:]=="_climo.nc":
-          return NCAR_climo_filefmt( dfile, get_them_all )
+          return NCAR_climo_filefmt( dfile, varlist )
        else:
-          return NCAR_filefmt( dfile, get_them_all )
+          return NCAR_filefmt( dfile, varlist )
        # Formerly this was "return Unknown_filefmt()" but I have some obs data from NCAR
        # which has no global attributes which would tell you what kind of file it is.
        # Nevertheless the one I am looking at has lots of clues, e.g. variable and axis names.
@@ -98,7 +99,8 @@ class basic_filetable:
     Different file types will require different methods,
     and auxiliary data."""
 
-    def __init__( self, filelist, ftid='', cache_path=None, get_them_all=False ):
+    def __init__( self, filelist, varlist, ftid='', cache_path=None):
+    # It might be nice to pass an Options class instead of a varlist so we could get things like verbose options
         """filelist is a list of strings, each of which is the path to a file"""
         self._table = []     # will be built from the filelist, see below
         # We have two indices, one by file and one by variable.
@@ -115,7 +117,7 @@ class basic_filetable:
         if filelist is None: return
         self._id = ftid
         for filep in filelist.files:
-            self.addfile( filep, get_them_all )
+            self.addfile( filep, varlist)
     def __repr__(self):
        return 'filetable from '+str(self._filelist)
     def full_repr(self):
@@ -137,17 +139,19 @@ class basic_filetable:
        return self
     def nrows( self ):
        return len(self._table)
-    def addfile( self, filep, get_them_all=False ):
+    def addfile( self, filep, varlist):
         """Extract essential header information from a file filep,
         and put the results in the table.
         filep should be a string consisting of the path to the file."""
+        # There are probably faster methods than opening each file for nonCMIP5 datasets
         fileid = filep
         try:
            dfile = cdms2.open( fileid )
         except cdms2.error.CDMSError as e:
+           print 'WARNING: cdms open failed for file: ', fileid
            # probably "Cannot open file", but whatever the problem is, don't bother with it.
            return
-        filesupp = get_datafile_filefmt( dfile, get_them_all )
+        filesupp = get_datafile_filefmt( dfile, varlist)
         vars = filesupp.interesting_variables()
         if len(vars)>0:
             timerange = filesupp.get_timerange()
@@ -204,6 +208,9 @@ class basic_filetable:
           if seasonid=='JFMAMJJASOND':
              seasonid='ANN'
           for ftrow in candidates:
+# BES might need to readd this stuff
+#            if(time_range == None and lat_range == None and lon_range == None and level_range == None):
+#                found.append(ftrow)
              if seasonid==ftrow.timerange and\
                     lat_range.overlaps_with( ftrow.latrange ) and\
                     lon_range.overlaps_with( ftrow.lonrange ) and\
@@ -226,6 +233,7 @@ class basic_filetable:
                        level_range.overlaps_with( ftrow.levelrange ):
                    found.append( ftrow )
        return found
+
     def list_variables(self):
        vars = list(set([ r.variableid for r in self._table ]))
        vars.sort()
@@ -252,18 +260,14 @@ class Unknown_filefmt(basic_filefmt):
 class NCAR_filefmt(basic_filefmt):
    """NCAR History Tape format, used by CAM,CCSM,CESM.  This class works off a derived
    xml file produced with cdscan."""
-   def __init__(self,dfile, get_them_all=False):
+   def __init__(self,dfile, varlist):
       """dfile is an open file.  It must be an xml file produced by cdscan,
       combining NCAR History Tape format files."""
       self._dfile = dfile
-      if get_them_all:
+      if 'ALL' in varlist:
          self._all_interesting_names = self._dfile.variables.keys()
       else:
-         self._all_interesting_names = [
-            'hyam', 'hybm', 'CLDTOT',
-            'T', 'TREFHT', 'PRECT', 'PS', 'PSL', 'Z500', 'ORO', 'QFLX',
-            'FSNS', 'FLNS', 'FLUT', 'FSNTOA', 'FLNT', 'FSNT', 'SHFLX', 'LHFLX', 'OCNFRAC'
-            ] 
+         self._all_interesting_names = varlist
 
    def get_timerange(self):
       if 'time' not in self._dfile.axes:
@@ -311,6 +315,8 @@ class NCAR_filefmt(basic_filefmt):
       return drange( lo, hi, units )
    def get_levelrange(self):
       # uses interface points, which are bounds on the level centers
+      # this seems like it should be in one place. reductions.py has similar things and if another
+      # 'z' axis pops up we'll have to remember to change it here and there both
       if 'ilev' in self._dfile.axes.keys():
          lo = self._dfile.axes['ilev'][0]
          hi = self._dfile.axes['ilev'][-1]
@@ -319,6 +325,14 @@ class NCAR_filefmt(basic_filefmt):
          lo = self._dfile.axes['lev'][0]
          hi = self._dfile.axes['lev'][-1]
          units = self._dfile.axes['lev'].units
+      elif 'levlak' in self._dfile.axes.keys():
+         lo = self._dfile.axes['levlak'][0]
+         hi = self._dfile.axes['levlak'][-1]
+         units = self._dfile.axes['levlak'].units
+      elif 'levgrnd' in self._dfile.axes.keys():
+         lo = self._dfile.axes['levgrnd'][0]
+         hi = self._dfile.axes['levgrnd'][-1]
+         units = self._dfile.axes['levgrnd'].units
       else:
          return None
       return drange( lo, hi, units )
@@ -328,10 +342,12 @@ class NCAR_filefmt(basic_filefmt):
       the actual variable name."""
       iv = []
       for var in self._dfile.variables.keys():
-         if len(self._dfile.variables[var].getAxisList())>=3:
-            iv.append(var)
          if var in self._all_interesting_names:
             iv.append(var)
+         elif var.upper() in self._all_interesting_names:
+            iv.append(var.lower())
+         elif var.lower() in self._all_interesting_names:
+            iv.append(var.upper())
          elif hasattr(self._dfile[var],'original_name') and\
                 self._dfile[var].original_name in self._all_interesting_names:
             iv.append(var)
@@ -459,10 +475,15 @@ class CF_filefmt(basic_filefmt):
         return drange( lo, hi, units )
 
 if __name__ == '__main__':
-   if len( sys.argv ) > 1:
+   if len(sys.argv) == 1:
       from findfiles import *
-      datafiles = dirtree_datafiles( sys.argv[1] )
-      filetable = basic_filetable( datafiles )
+      datafiles = dirtree_datafiles(sys.argv[1])
+      filetable = basic_filetable(datfiles, ['ALL'])
+      print "filetable=", filetable.sort()
+   if len(sys.argv) > 1:
+      from findfiles import *
+      datafiles = dirtree_datafiles(sys.argv[1])
+      filetable = basic_filetable(datfiles, sys.argv[2:])
       print "filetable=", filetable.sort()
    else:
       print "usage: filetable.py root"

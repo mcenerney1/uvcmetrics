@@ -5,8 +5,8 @@
 
 import hashlib, pickle, operator, os, functools, sys, re
 import pprint
-from metrics.frontend.version import version
-from metrics.fileio.filetable import *
+from frontend.version import version
+from fileio.filetable import *
 
 # Datafile Filters: Make one class for each atomic operation, e.g. check that it
 # is a file (as opposed to directory, etc.), check the file extension,
