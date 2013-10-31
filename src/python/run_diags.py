@@ -20,6 +20,8 @@ if __name__ == '__main__':
    # At this point, we have our options specified. Need to generate some climatologies and such
    datafiles = []
    filetables = []
+   vars = o._opts['vars']
+   print vars
 
    index = 0
    for p in o._opts['path']:
@@ -28,16 +30,18 @@ if __name__ == '__main__':
       datafiles.append(dirtree_datafiles(p))
       if(o._opts['verbose'] >= 1):
          print 'Creating filetable for path ', p
-      filetables.append(basic_filetable(datafiles[index]))
+      filetables.append(basic_filetable(datafiles[index], vars))
       index = index+1
 
-   reduced_variables = {
-      'tg_1': reduced_variable(
-         variableid='TG', filetable=filetable1,
-         reduction_function=(lambda x, vid=None, x)),
-      'pbot_1': reduced_variable(
-         variableid='PBOT', filetable=filetable1,
-         reduction_function=(lambda x, vid=None, x))}}
+
+   print filetables[0].find_files('TG')
+#   reduced_variables = {
+#      'tg_1': reduced_variable(
+#         variableid='TG', filetable=filetable1,
+#         reduction_function=(lambda x, vid=None, x)),
+#      'pbot_1': reduced_variable(
+#         variableid='PBOT', filetable=filetable1,
+#         reduction_function=(lambda x, vid=None, x))}}
 
 
 
