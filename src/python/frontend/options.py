@@ -20,7 +20,7 @@ class Options():
       self._opts['precomputed'] = False
       self._opts['model'] = None
       self._opts['packages'] = None
-      self._opts['vars'] = None
+      self._opts['vars'] = ['ALL']
       self._opts['sets'] = None
       self._opts['years'] = None
       self._opts['reltime'] = None
@@ -54,7 +54,6 @@ class Options():
          kys = self.all_sets[package].keys()
          # assume "setXX" where XX is a number and we want "10" after "9" not "1"
          kys.sort(key=lambda x:int(filter(str.isdigit, x)))
-#         kys.sort(key=lambda x:int(x[3:]))
          klist = []
          for k in kys:
             klist.append(self.all_sets[package][k][key])
@@ -71,7 +70,13 @@ class Options():
       return self.all_models
 
    def listPackages(self, model):
-      return self.all_packages[model]
+      if type(model) == list:
+         plist = []
+         for m in model:
+            plist.append(self.all_packages[m])
+         return plist
+      else:
+         return self.all_packages[model]
 
 
    def processCmdLine(self):
@@ -90,7 +95,7 @@ class Options():
       parser.add_argument('--sets', '--set', '-s', nargs='+', 
          help="The sets within a diagnostic package to run. Multiple sets can be specified. If multiple packages were specified, the sets specified will be searched for in each package") 
       parser.add_argument('--vars', '--var', '-v', nargs='+', 
-         help="Specify variables of interest to process.") 
+         help="Specify variables of interest to process. The default is all variables which can also be specified with the keyword ALL") 
       parser.add_argument('--list', '-l', nargs=1, choices=['sets', 'variables', 'packages', 'models', 'seasons', 'plottypes'], 
          help="Determine which models, packages, sets, and variables are available")
       parser.add_argument('--nc', action='store_true', 
@@ -128,6 +133,7 @@ class Options():
          help="Increase the verbosity level. Each -v option increases the verbosity more.") # count
       parser.add_argument('--name', action='append', nargs=1,
          help="Specify option names for the datasets for plot titles, etc") #optional name for the set
+      # This will be the standard list of region names NCAR has
       parser.add_argument('--region', '--regions', nargs='+', choices=["North America", "South America"],
          help="Specify a geographical region of interest")
 
@@ -147,10 +153,13 @@ class Options():
                print "Please specify model type before requesting packages list"
                quit()
 
-            print "Listing available packages for type ", args.model
-            for m in args.model:
-               for n in self.all_packages[m]:
-                  print n
+            print "Listing available packages for type ", args.model[0]
+            plist = self.listPackages(args.model)
+            for p in plist:
+               print p
+#            for m in args.model:
+#               for n in self.all_packages[m]:
+#                  print n
 
          if args.list[0] == 'sets':
             if args.model == None:
@@ -160,11 +169,8 @@ class Options():
                print "Please specify package before requesting available diags sets"
                quit()
             for p in args.packages:
-               print "Available sets for package ", p, ":"
-               kys = list(self.all_sets[p].keys())
-               kys.sort(key=lambda x:int(filter(str.isdigit, x)))
-               for n in kys:
-                  print n, ' - ', self.all_sets[p][n]['name']
+               print 'Avaialble sets for package ', p, ':'
+               print self.listSets(p)
                
 
          if args.list[0] == 'variables':
