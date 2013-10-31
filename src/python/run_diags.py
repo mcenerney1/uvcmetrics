@@ -5,7 +5,7 @@
 # variables, with the time often restricted to a month or season.
 # This is basically a simplified version of plot_data.py.
 
-import cdms2, math
+import cdms2, math, cdutil, genutil
 
 from frontend.options import Options
 from io.filetable import *
@@ -30,6 +30,14 @@ if __name__ == '__main__':
          print 'Creating filetable for path ', p
       filetables.append(basic_filetable(datafiles[index]))
       index = index+1
+
+   reduced_variables = {
+      'tg_1': reduced_variable(
+         variableid='TG', filetable=filetable1,
+         reduction_function=(lambda x, vid=None, x)),
+      'pbot_1': reduced_variable(
+         variableid='PBOT', filetable=filetable1,
+         reduction_function=(lambda x, vid=None, x))}}
 
 
 
