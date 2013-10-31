@@ -3,12 +3,13 @@
 # Features common to standard diagnostics from all groups, e.g. AMWG, LMWG.
 
 from metrics.io.filetable import basic_filetable
+import metrics.frontend.options
 
 def diagnostics_menu():
     from metrics.amwg.amwg import AMWG
     return { "AMWG":AMWG }
 
-class BasicDiagnosticGroup():
+class BasicDiagnosticGroup(Options):
     # This class will probably not get instantiated.
     # AMWG, LMWG, etc. should inherit from this.
     def __repr__( self ):
