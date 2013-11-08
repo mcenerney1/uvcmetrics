@@ -12,18 +12,12 @@ import dateutil.parser
 from datetime import datetime as datetime
 from unidata import udunits
 from cdutil import averager
-from metrics.amwg.derivations import press2alt
-from metrics.io.filetable import *
-from metrics.io.filetable import *
+import press2alt
+from io.filetable import *
+from io.filetable import *
 #from climo_test import cdutil_climatology
 
-seasonsDJF=cdutil.times.Seasons(['DJF'])
-seasonsJJA=cdutil.times.Seasons(['JJA'])
-seasons2=cdutil.times.Seasons(['DJF','JJA'])
-seasons4=cdutil.times.Seasons(['DJF','MAM','JJA','SON'])
 seasonsyr=cdutil.times.Seasons('JFMAMJJASOND')
-seasonsmons=cdutil.times.Seasons(
-    ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'])
 
 
 # >>>> TO DO: accomodate more names for the level axis.  Much of this can be
@@ -69,10 +63,10 @@ def levAxis( mv ):
         if ax.id=='plev':
             lev_axis = ax
             break
-         if ax.id=='levlak':
+        if ax.id=='levlak':
             lev_axis = ax
             break
-         if ax.id=='levgrnd':
+        if ax.id=='levgrnd':
             lev_axis = ax
             break
     return lev_axis
@@ -1018,13 +1012,13 @@ class reduced_variable(ftrow):
             familyname = filename[0:(matchobject.end()-3)]
             return familyname        
 
-    def reduce( self, vid=None ):
+    def reduce( self, options, vid=None ):
         """Finds and opens the files containing data required for the variable,
         Applies the reduction function to the data, and returns an MV.
         When completed, this will treat missing data as such.
         At present only CF-compliant files are supported."""
         if vid is None:
-            vid = self._vid
+            vid = 'red-'+self.variableid
         rows = self._filetable.find_files( self.variableid, time_range=self.timerange,
                                            lat_range=self.latrange, lon_range=self.lonrange,
                                            level_range=self.levelrange )
@@ -1037,6 +1031,7 @@ class reduced_variable(ftrow):
 
         # To make it even easier on the first cut, I won't worry about missing data and
         # anything else inconvenient, and I'll assume CF compliance.
+        #### NONE OF THIS WORKS WITHOUT A CDSCAN GENERATED XML FILE, AND GENERATION OF THAT IS NOT WORKING. FIX NEXT
         files = list(set([r.fileid for r in rows]))
         if len(files)>1:
             # Piece together the data from multiple files.  That's what cdscan is for...
@@ -1111,7 +1106,7 @@ class reduced_variable(ftrow):
         else:
             # the easy case, just one file has all the data on this variable
             f = cdms2.open(files[0])
-        fcf = get_datafile_filefmt(f)
+        fcf = get_datafile_filefmt(f,options)
         varname = fcf.variable_by_stdname(self.variableid)
         reduced_data = self._reduction_function( f(varname), vid=vid )
         if reduced_data is not None:
