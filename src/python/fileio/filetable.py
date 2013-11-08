@@ -5,6 +5,7 @@
 # subject to change!
 
 import sys, os, cdms2
+from frontend.options import Options
 
 class drange:
    def __init__( self, low=None, high=None, units=None ):
@@ -65,30 +66,31 @@ class ftrow:
              self.timerange.__repr__(), self.latrange.__repr__(), self.lonrange.__repr__() )
 
 
-def get_datafile_filefmt( dfile, varlist):
+def get_datafile_filefmt( dfile, options):
     """dfile is an open datafile.  If the file type is recognized,
     then this will return an object with methods needed to support that file type."""
     if hasattr(dfile, 'source') and \
       (dfile.source.find('CAM') or dfile.source.fine('CCSM') or \
        dfile.source.find('CESM') or dfile.source.find('CLM')): # is there no better way?
        if hasattr(dfile,'season') or dfile.id[-9:]=="_climo.nc":
-          return NCAR_climo_filefmt( dfile, varlist )
+          return NCAR_climo_filefmt( dfile, options )
        else:
-          return NCAR_filefmt( dfile, varlist)
+          return NCAR_filefmt( dfile, options)
        # Note that NCAR Histoy Tape files are marked as supporting the CF Conventions
        # and do so, but it's minimal, without most of the useful CF features (e.g.
        # where are bounds for the lat axis?).
        # The same applies to the dataset xml file produced by cdscan from such files.
-    if hasattr(dfile,'Conventions') and dfile.Conventions[0:2]=='CF':
+    if (hasattr(dfile,'Conventions') and dfile.Conventions[0:2]=='CF') or \
+       (hasattr(dfile,'conventions') and dfile.conventions[0:2]=='CF'):
        # Really this filefmt assumes more than CF-compliant - it requires standard
        # but optional features such as standard_name and bounds attribures.  Eventually
        # I should put in a check for that.
        return CF_filefmt( dfile )
     else:
        if hasattr(dfile,'season') or dfile.id[-9:]=="_climo.nc":
-          return NCAR_climo_filefmt( dfile, varlist )
+          return NCAR_climo_filefmt( dfile, options )
        else:
-          return NCAR_filefmt( dfile, varlist )
+          return NCAR_filefmt( dfile, options )
        # Formerly this was "return Unknown_filefmt()" but I have some obs data from NCAR
        # which has no global attributes which would tell you what kind of file it is.
        # Nevertheless the one I am looking at has lots of clues, e.g. variable and axis names.
@@ -99,7 +101,7 @@ class basic_filetable:
     Different file types will require different methods,
     and auxiliary data."""
 
-    def __init__( self, filelist, varlist, ftid='', cache_path=None):
+    def __init__( self, filelist, options, ftid='', cache_path=None):
     # It might be nice to pass an Options class instead of a varlist so we could get things like verbose options
         """filelist is a list of strings, each of which is the path to a file"""
         self._table = []     # will be built from the filelist, see below
@@ -117,7 +119,7 @@ class basic_filetable:
         if filelist is None: return
         self._id = ftid
         for filep in filelist.files:
-            self.addfile( filep, varlist)
+            self.addfile( filep, options)
     def __repr__(self):
        return 'filetable from '+str(self._filelist)
     def full_repr(self):
@@ -139,7 +141,7 @@ class basic_filetable:
        return self
     def nrows( self ):
        return len(self._table)
-    def addfile( self, filep, varlist):
+    def addfile( self, filep, options):
         """Extract essential header information from a file filep,
         and put the results in the table.
         filep should be a string consisting of the path to the file."""
@@ -149,9 +151,10 @@ class basic_filetable:
            dfile = cdms2.open( fileid )
         except cdms2.error.CDMSError as e:
            print 'WARNING: cdms open failed for file: ', fileid
+           print 'This could just be an unsupported file type in the dataset directory'
            # probably "Cannot open file", but whatever the problem is, don't bother with it.
            return
-        filesupp = get_datafile_filefmt( dfile, varlist)
+        filesupp = get_datafile_filefmt( dfile, options)
         vars = filesupp.interesting_variables()
         if len(vars)>0:
             timerange = filesupp.get_timerange()
@@ -258,11 +261,14 @@ class Unknown_filefmt(basic_filefmt):
     """Any unsupported file type gets this one."""
 
 class NCAR_filefmt(basic_filefmt):
+   o = Options()
    """NCAR History Tape format, used by CAM,CCSM,CESM.  This class works off a derived
    xml file produced with cdscan."""
-   def __init__(self,dfile, varlist):
+   def __init__(self,dfile, options):
       """dfile is an open file.  It must be an xml file produced by cdscan,
       combining NCAR History Tape format files."""
+      self.o = options
+      varlist = self.o._opts['vars']
       self._dfile = dfile
       if 'ALL' in varlist:
          self._all_interesting_names = self._dfile.variables.keys()
@@ -284,12 +290,17 @@ class NCAR_filefmt(basic_filefmt):
       else:
          lo = timeax[0]
          hi = timeax[-1]
-      if hasattr( timeax, 'units' ):
-         units = timeax.units
-      elif hasattr( timeax, 'long_name' ) and timeax.long_name.find(' since ')>1:
-         units = timeax.long_name   # works at least sometimes
+
+      if self.o._opts['reltime'] != None:
+         units = self.o._opts['reltime']
+#         print 'SETTING TIME TO ', units
       else:
-         units = None
+         if hasattr( timeax, 'units' ):
+            units = timeax.units
+         elif hasattr( timeax, 'long_name' ) and timeax.long_name.find(' since ')>1:
+            units = timeax.long_name   # works at least sometimes
+         else:
+            units = None
       return drange( lo, hi, units )
    def get_latrange(self):
       # uses center points because the axis doesn't have a bounds attribute
