@@ -1,5 +1,5 @@
 package_name = "amwg"
-package_type = "atmosphere"
+package_realm = "atmosphere"
 
 package_ids = ['set1', 'set2', 'set3', 'set4', 'set4a', 'set5', 'set6', 'set7', 'set8', 'set9', 'set10', 'set11','set12','set13','set14','set15']
 package_sets = {

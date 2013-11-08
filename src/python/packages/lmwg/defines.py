@@ -1,5 +1,5 @@
 package_name = "lmwg"
-package_type = "land"
+package_raelm = "land"
 
 package_ids = ['set1', 'set2', 'set3', 'set4', 'set5', 'set6', 'set7', 'set8', 'set9']
 #eventually, we should do more with the other keys, but for now most of the code will just key off set names

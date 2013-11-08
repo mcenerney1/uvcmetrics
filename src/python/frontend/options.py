@@ -18,7 +18,7 @@ class Options():
       self._opts['climatologies'] = True
       self._opts['plots'] = True
       self._opts['precomputed'] = False
-      self._opts['model'] = None
+      self._opts['realm'] = None
       self._opts['packages'] = None
       self._opts['vars'] = ['ALL']
       self._opts['sets'] = None
@@ -30,12 +30,12 @@ class Options():
       self._opts['times'] = []
       self._opts['path'] = []
 
-      # Generate a unique list of available model types
-      self.model_types = packages.all_models
+      # Generate a unique list of available realm types
+      self.realm_types = packages.all_realms
       self.all_packages = packages.all_packages
 
       self.all_sets = {}
-      for m in self.model_types:
+      for m in self.realm_types:
          for p in self.all_packages[m]:
             self.all_sets[p] = {}
             for s in packages.__dict__[p].package_ids:
@@ -64,24 +64,30 @@ class Options():
          return l
 #         return list(self.all_sets[package].keys()).sort(key=lambda x:int(x[3:]))
 #         return self.all_sets[package].keys()
-      #return self.all_sets[model][package]
+      #return self.all_sets[realm][package]
 
-   def listModels(self):
-      return self.all_models
+   def listRealms(self):
+      return self.all_realms
 
-   def listPackages(self, model):
-      if type(model) == list:
+   def listPackages(self, realm):
+      if type(realm) == list:
          plist = []
-         for m in model:
+         for m in realm:
             plist.append(self.all_packages[m])
          return plist
       else:
-         return self.all_packages[model]
+         return self.all_packages[realm]
 
    def verifyOptions(self):
+
+      if(self._opts['path'] == []):
+         if(self._opts['list'] == None):
+            print 'One or more path arguements is required'
+            quit()
+            
       if(self._opts['plots'] == True):
-         if(self._opts['model'] == None):
-            print 'Please specify a model type if you want to generate plots'
+         if(self._opts['realm'] == None):
+            print 'Please specify a realm type if you want to generate plots'
             quit()
          if(self._opts['packages'] == None):
             print 'Please specify a package name if you want to generate plots'
@@ -90,7 +96,7 @@ class Options():
             print 'Please specify set names if you want to generate plots'
             quit()
          # These could probably be assumed instead? 
-         if(self._opts['model'] != None):
+         if(self._opts['realm'] != None):
             if(self._opts['packages'] == None):
                print 'Please specify a package name'
                quit()
@@ -107,10 +113,10 @@ class Options():
          description='UV-CDAT Climate Modeling Diagnostics', 
          usage='%(prog)s path1 [path2] [options]')
 
-      parser.add_argument('--path', '-p', action='append', nargs=1, required=True, 
+      parser.add_argument('--path', '-p', action='append', nargs=1, 
          help="Path to dataset(s). At least one path is required.")
-      parser.add_argument('--model', '-m', nargs=1, choices=self.model_types,
-         help="The model type. Current valid options are 'land' and 'atmosphere'")
+      parser.add_argument('--realm', '-r', nargs=1, choices=self.realm_types,
+         help="The realm type. Current valid options are 'land' and 'atmosphere'")
       parser.add_argument('--filter', '-f', nargs=1, 
          help="A filespec filter. This will be applied to the dataset path(s) to narrow down file choices.")
       parser.add_argument('--packages', '--package', '-k', nargs='+', 
@@ -119,8 +125,8 @@ class Options():
          help="The sets within a diagnostic package to run. Multiple sets can be specified. If multiple packages were specified, the sets specified will be searched for in each package") 
       parser.add_argument('--vars', '--var', '-v', nargs='+', 
          help="Specify variables of interest to process. The default is all variables which can also be specified with the keyword ALL") 
-      parser.add_argument('--list', '-l', nargs=1, choices=['sets', 'variables', 'packages', 'models', 'seasons', 'plottypes'], 
-         help="Determine which models, packages, sets, and variables are available")
+      parser.add_argument('--list', '-l', nargs=1, choices=['sets', 'variables', 'packages', 'realms', 'seasons', 'plottypes'], 
+         help="Determine which realms, packages, sets, and variables are available")
          # maybe eventually add compression level too....
       parser.add_argument('--compress', nargs=1, choices=['no', 'yes'],
          help="Turn off netCDF compression. This can be required for other utilities to be able to process the output files (e.g. parallel netCDF based tools") #no compression, add self state
@@ -166,28 +172,28 @@ class Options():
 
 
       if(args.list != None):
-         if args.list[0] == 'models':
-            print "Available models: ", self.model_types
+         if args.list[0] == 'realms':
+            print "Available realms: ", self.realm_types
 
          if args.list[0] == 'seasons':
             print "Available seasons: ", self.all_seasons
 
          if args.list[0] == 'packages':
-            if args.model == None:
-               print "Please specify model type before requesting packages list"
+            if args.realm == None:
+               print "Please specify realm type before requesting packages list"
                quit()
 
-            print "Listing available packages for type ", args.model[0]
-            plist = self.listPackages(args.model)
+            print "Listing available packages for type ", args.realm[0]
+            plist = self.listPackages(args.realm)
             for p in plist:
                print p
-#            for m in args.model:
+#            for m in args.realm:
 #               for n in self.all_packages[m]:
 #                  print n
 
          if args.list[0] == 'sets':
-            if args.model == None:
-               print "Please specify model type before requesting available diags sets"
+            if args.realm == None:
+               print "Please specify realm type before requesting available diags sets"
                quit()
             if args.packages == None:
                print "Please specify package before requesting available diags sets"
@@ -205,7 +211,7 @@ class Options():
          # Stop processing arguments if list was requested
          quit()
 
-      # TODO: If model/package/set are not specified and --list is not passed, this would generally be an error
+      # TODO: If realm/package/set are not specified and --list is not passed, this would generally be an error
 
       if(args.path != None):
          for i in args.path:
@@ -267,23 +273,23 @@ class Options():
       if(args.timebounds != None):
          self._opts['bounds'] = args.timebounds
 
-      # Check for a specified model being valid
-      if(args.model != None):
-         if(args.model[0] in self.model_types):
-            self._opts['model'] = args.model[0]
+      # Check for a specified realm being valid
+      if(args.realm != None):
+         if(args.realm[0] in self.realm_types):
+            self._opts['realm'] = args.realm[0]
          else:
-            print 'model type ',args.model[0],' is not in the supported list'
-            print 'Supported models types: '
-            for model in self.model_types:
-               print model
+            print 'realm type ',args.realm[0],' is not in the supported list'
+            print 'Supported realm types: '
+            for realm in self.realm_types:
+               print realm
             quit()
 
 
-      if(args.packages != None and self._opts['model'] != None):
+      if(args.packages != None and self._opts['realm'] != None):
          plist = []
-         # package was specified, and a model has been picked
+         # package was specified, and a realm has been picked
          for m in args.packages:
-            for p in self.all_packages[self._opts['model']]:
+            for p in self.all_packages[self._opts['realm']]:
                if m == p:
                   plist.append(m)
          self._opts['packages'] = plist
