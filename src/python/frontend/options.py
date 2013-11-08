@@ -9,7 +9,7 @@ class Options():
 
    def __init__(self):
       self._opts = {}
-      self._opts['nc'] = False
+      self._opts['compress'] = False
       self._opts['seasonally'] = False
       self._opts['monthly'] = False
       self._opts['yearly'] = False
@@ -78,6 +78,29 @@ class Options():
       else:
          return self.all_packages[model]
 
+   def verifyOptions(self):
+      if(self._opts['plots'] == True):
+         if(self._opts['model'] == None):
+            print 'Please specify a model type if you want to generate plots'
+            quit()
+         if(self._opts['packages'] == None):
+            print 'Please specify a package name if you want to generate plots'
+            quit()
+         if(self._opts['sets'] == None):
+            print 'Please specify set names if you want to generate plots'
+            quit()
+         # These could probably be assumed instead? 
+         if(self._opts['model'] != None):
+            if(self._opts['packages'] == None):
+               print 'Please specify a package name'
+               quit()
+            if(self._opts['sets'] == None):
+               print 'Please specify a set name'
+               quit()
+         if(self._opts['packages'] != None):
+            if(self._opts['sets'] == None):
+               print 'Please specify a set name'
+               quit()
 
    def processCmdLine(self):
       parser = argparse.ArgumentParser(
@@ -98,7 +121,8 @@ class Options():
          help="Specify variables of interest to process. The default is all variables which can also be specified with the keyword ALL") 
       parser.add_argument('--list', '-l', nargs=1, choices=['sets', 'variables', 'packages', 'models', 'seasons', 'plottypes'], 
          help="Determine which models, packages, sets, and variables are available")
-      parser.add_argument('--nc', action='store_true', 
+         # maybe eventually add compression level too....
+      parser.add_argument('--compress', nargs=1, choices=['no', 'yes'],
          help="Turn off netCDF compression. This can be required for other utilities to be able to process the output files (e.g. parallel netCDF based tools") #no compression, add self state
       parser.add_argument('--output', '-o', nargs=1, 
          help="Specify an output base name. Typically, seasonal information will get postpended to this. For example -o myout will generate myout-JAN.nc, myout-FEB.nc, etc")
@@ -115,9 +139,9 @@ class Options():
       parser.add_argument('--plottype', nargs=1)
       parser.add_argument('--precomputed', nargs=1, choices=['no','yes'], 
          help="Specifies whether standard climatologies are stored with the dataset (*-JAN.nc, *-FEB.nc, ... *-DJF.nc, *-year0.nc, etc")
-      parser.add_argument('--json', '-j', action='store_true',
+      parser.add_argument('--json', '-j', nargs=1, choices=['no', 'yes'],
          help="Produce JSON output files as part of climatology generation") # same
-      parser.add_argument('--netcdf', '-n', action='store_true',
+      parser.add_argument('--netcdf', '-n', nargs=1, choices=['no', 'yes'],
          help="Produce NetCDF output files as part of climatology generation") # same
       parser.add_argument('--seasonally', action='store_true',
          help="Produce climatologies for all of the defined seasons. To get a list of seasons, run --list seasons")
@@ -194,24 +218,38 @@ class Options():
          for i in args.filter:
             self._opts['filter'].append(i[0])
 
-      self._opts['nc'] = args.nc
       self._opts['seasonally'] = args.seasonally
       self._opts['monthly'] = args.monthly
-      self._opts['json'] = args.json
-      self._opts['netcdf'] = args.netcdf
-      if(self._opts['plots'] != None):
-         if(self._opts['plots'] == 'no'):
-            args.plots = False
-         else:
-            args.plots = True
 
-      self._opts['plots'] = args.plots
-
-      if(self._opts['climatologies'] != None):
-         if(self._opts['climatologies'] == 'no'):
-            args.climatologies = False
+      if(args.compress != None):
+         if(args.compress[0] == 'no'):
+            self._opts['compress'] = False
          else:
-            args.climatologies = True
+            self._opts['compress'] = True
+
+      if(args.json != None):
+         if(args.json[0] == 'no'):
+            self._opts['json'] = False
+         else:
+            self._opts['json'] = True
+
+      if(args.netcdf != None):
+         if(args.netcdf[0] == 'no'):
+            self._opts['netcdf'] = False
+         else:
+            self._opts['netcdf'] = True
+
+      if(args.plots != None):
+         if(args.plots[0] == 'no'):
+            self._opts['plots'] = False
+         else:
+            self._opts['plots'] = True
+
+      if(args.climatologies != None):
+         if(args.climatologies[0] == 'no'):
+            self._opts['climatologies'] = False
+         else:
+            self._opts['climatologies'] = True
 
       self._opts['verbose'] = args.verbose
 
@@ -230,12 +268,7 @@ class Options():
          self._opts['bounds'] = args.timebounds
 
       # Check for a specified model being valid
-      if(args.model == None):
-         print "Please provide a model. Supported model types are: "
-         for model in self.model_types:
-            print model
-         quit()
-      else:
+      if(args.model != None):
          if(args.model[0] in self.model_types):
             self._opts['model'] = args.model[0]
          else:
@@ -245,12 +278,6 @@ class Options():
                print model
             quit()
 
-      # Given a model, check for a specified package being valid
-      # Note: This is more complicated if we allow multiple packages for a given model
-      # (which is a reasonable thing to do)
-      if(args.packages == None):
-         print "Please specify a package name"
-         quit()
 
       if(args.packages != None and self._opts['model'] != None):
          plist = []
@@ -275,7 +302,8 @@ class Options():
          self._opts['sets'] = slist
 
       # There is no way to check this yet since we have some derived variables in a lot of sets
-      self._opts['vars'] == args.vars
+      if args.vars != None:
+         self._opts['vars'] = args.vars
 
       # If --yearly is set, then we will add 'ANN' to the list of climatologies
       if(args.yearly == True):
