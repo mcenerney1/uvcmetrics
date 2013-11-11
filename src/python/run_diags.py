@@ -67,13 +67,24 @@ if __name__ == '__main__':
             rvar = reduced_variable(variableid = var,
                filetable = filetables[0],
                reduction_function=(lambda x, vid=vid: reduce_time_seasonal(x, season, vid=vid)))
+
             print 'Reducing ', var, ' for climatology ', seas
-            r = rvar.reduce(o)
-            d = r.data
-            print type(var)
-            print r.missing_value
-            print r[0][0]
-#            print d[150]
+            data = {}
+            red = rvar.reduce(o)
+            filename = var+"-"+seas+"-climatology.json"
+            print 'Writing to ', filename
+            g = open(filename, 'w')
+            data['geo_average_min'] = red.min()
+            data['geo_average_max'] = red.max()
+            mv = red.missing_value
+            data['missing_value'] = mv
+            data['geo_average_data'] = red.data.tolist()
+            json.dump(data, g, separators=(',',':'))
+            g.close()
+
+
+
+
             quit()
 
 
