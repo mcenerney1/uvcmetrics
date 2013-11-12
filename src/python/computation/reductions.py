@@ -685,6 +685,37 @@ def interp2( newaxis1, mv ):
                                              right=missing ) )>0
     return new_vals
 
+def sumvarlist(mlist):
+   mv = cdms2.createVariable()
+   for m in mlist:
+      mv = mv + m
+   return mv
+
+
+def aplusb0(mv1, mv2 ):
+   """ returns mv1[0,] + mv2[0,]; they should be dimensioned alike."""
+   mv = mv1[0,] + mv2[0,]
+   if hasattr(mv ,'long_name'):
+      if mv.long_name == mv1.long_name:
+         mv.long_name = ''
+   return mv
+
+def aplusb(mv1, mv2):
+   """ returns mv1+mv2; they should be dimensioned alike."""
+   mv = mv1 + mv2
+   if hasattr(mv, 'long_name'):
+      if mv.long_name == mv1.long_name:
+         mv.long_name = ''
+   return mv
+
+def aminusb(mv1, mv2):
+   """ returns mv1-mv2; they should be dimensioned alike."""
+   mv = mv1 - mv2
+   if hasattr(mv, 'long_name'):
+      if mv.long_name == mv1.long_name:
+         mv.long_name = ''
+   return mv
+
 def aminusb0( mv1, mv2 ):
     """ returns mv1[0,]-mv2[0,]; they should be dimensioned alike.  Attributes will be fixed up where I know how."""
     mv = mv1[0,] - mv2[0,]
@@ -692,6 +723,24 @@ def aminusb0( mv1, mv2 ):
         if mv.long_name==mv1.long_name:  # They're different, shouldn't have the same long_name
             mv.long_name = ''
     return mv
+
+def adivapb(mv1, mv2):
+    """returns a/(a+b) """
+    mv = cdms2.createVariable()
+    mv = mv1/(mv1+mv2)
+    if hasattr(mv, 'long_name'):
+      if mv.long_name == mv1.long_name:
+         mv.long_name = ''
+    return mv
+
+def adivb(mv1, mv2):
+   mv = mv1/mv2
+   if hasattr(mv, 'long_name'):
+      if mv.long_name = mv1.long_name:
+         mv.long_name = ''
+   return mv
+
+         
 
 def aminusb_ax2( mv1, mv2 ):
     """returns a transient variable representing mv1-mv2, where mv1 and mv2 are variables with
