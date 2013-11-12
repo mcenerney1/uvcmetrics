@@ -715,7 +715,7 @@ def adivapb(mv1, mv2):
 def adivb(mv1, mv2):
    mv = mv1/mv2
    if hasattr(mv, 'long_name'):
-      if mv.long_name = mv1.long_name:
+      if mv.long_name == mv1.long_name:
          mv.long_name = ''
    return mv
 
