@@ -7,6 +7,7 @@ from metrics import *
 from metrics.fileio.filetable import *
 from metrics.fileio.findfiles import *
 from metrics.computation.reductions import *
+# this should be able to just import a top level packages/ file, otherwise we have to import the same things in lots of places
 from metrics.amwg import *
 from metrics.amwg.derivations.vertical import *
 from metrics.amwg.plot_data import plotspec, derived_var
