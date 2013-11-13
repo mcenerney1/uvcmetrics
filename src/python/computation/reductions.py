@@ -13,8 +13,8 @@ from datetime import datetime as datetime
 from unidata import udunits
 from cdutil import averager
 import press2alt
-from io.filetable import *
-from io.filetable import *
+from fileio.filetable import *
+from fileio.filetable import *
 #from climo_test import cdutil_climatology
 
 seasonsyr=cdutil.times.Seasons('JFMAMJJASOND')
