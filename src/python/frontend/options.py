@@ -29,6 +29,7 @@ class Options():
       self._opts['filter'] = None
       self._opts['times'] = []
       self._opts['path'] = []
+      self._opts['obspath'] = []
 
       # Generate a unique list of available realm types
       self.realm_types = packages.all_realms
@@ -47,6 +48,16 @@ class Options():
       return self.all_seasons;
 
    def listPlots(self, sets):
+      return
+
+   # These two functions pretty much require some sort of iterable data structure for sets/vars
+   def listAllVariables(self, realm, key=None):
+      return
+      # List all vars given a realm. This might be complicated to implement
+      # Used to speed up the tree-based diags viewer from ORNL
+   def listAllSets(self, realm, key=None):
+      # List all sets given a realm.
+      # mostly used for the tree-based diags viewer from ORNL
       return
 
    def listSets(self, package, key=None):
@@ -80,6 +91,9 @@ class Options():
 
    def verifyOptions(self):
 
+   # TODO Determine if path is a single file, e.g. a cdscan generated XML file or a directory
+   # and if it is a directory, if there is already a .xml file, ignore it or not. Might
+   # need an option for that ignore option?
       if(self._opts['path'] == []):
          if(self._opts['list'] == None):
             print 'One or more path arguements is required'
@@ -115,6 +129,8 @@ class Options():
 
       parser.add_argument('--path', '-p', action='append', nargs=1, 
          help="Path to dataset(s). At least one path is required.")
+      parser.add_argument('--obspath', action='append', nargs=1,
+         help="Path to an observational dataset")
       parser.add_argument('--realm', '-r', nargs=1, choices=self.realm_types,
          help="The realm type. Current valid options are 'land' and 'atmosphere'")
       parser.add_argument('--filter', '-f', nargs=1, 
@@ -125,7 +141,7 @@ class Options():
          help="The sets within a diagnostic package to run. Multiple sets can be specified. If multiple packages were specified, the sets specified will be searched for in each package") 
       parser.add_argument('--vars', '--var', '-v', nargs='+', 
          help="Specify variables of interest to process. The default is all variables which can also be specified with the keyword ALL") 
-      parser.add_argument('--list', '-l', nargs=1, choices=['sets', 'variables', 'packages', 'realms', 'seasons', 'plottypes'], 
+      parser.add_argument('--list', '-l', nargs=1, choices=['sets', 'variables', 'packages', 'realms', 'seasons', 'plottypes', 'allsets', 'allvariables'], 
          help="Determine which realms, packages, sets, and variables are available")
          # maybe eventually add compression level too....
       parser.add_argument('--compress', nargs=1, choices=['no', 'yes'],
@@ -213,12 +229,17 @@ class Options():
 
       # TODO: If realm/package/set are not specified and --list is not passed, this would generally be an error
 
+
       if(args.path != None):
          for i in args.path:
             self._opts['path'].append(i[0])
       else:
          print 'Must specify a path at a minimum.'
          quit()
+
+      if(args.obspath != None):
+         for i in args.obspath:
+            self._opts['obspath'].append(i[0])
 
       if(args.filter != None):
          for i in args.filter:
