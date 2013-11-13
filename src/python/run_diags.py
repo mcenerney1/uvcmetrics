@@ -16,8 +16,8 @@ import cdms2, math, cdutil, genutil, json
 
 from frontend.options import Options
 from computation.reductions import *
-from io.filetable import *
-from io.findfiles import *
+from fileio.filetable import *
+from fileio.findfiles import *
 import packages
 
 
@@ -83,9 +83,6 @@ if __name__ == '__main__':
             g.close()
 
 
-
-
-            quit()
 
 
 

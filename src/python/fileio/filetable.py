@@ -70,7 +70,7 @@ def get_datafile_filefmt( dfile, options):
     """dfile is an open datafile.  If the file type is recognized,
     then this will return an object with methods needed to support that file type."""
     if hasattr(dfile, 'source') and \
-      (dfile.source.find('CAM') or dfile.source.fine('CCSM') or \
+      (dfile.source.find('CAM') or dfile.source.find('CCSM') or \
        dfile.source.find('CESM') or dfile.source.find('CLM')): # is there no better way?
        if hasattr(dfile,'season') or dfile.id[-9:]=="_climo.nc":
           return NCAR_climo_filefmt( dfile, options )
