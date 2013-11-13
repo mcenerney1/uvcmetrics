@@ -1082,13 +1082,17 @@ class reduced_variable(ftrow):
         # anything else inconvenient, and I'll assume CF compliance.
         #### NONE OF THIS WORKS WITHOUT A CDSCAN GENERATED XML FILE, AND GENERATION OF THAT IS NOT WORKING. FIX NEXT
         files = list(set([r.fileid for r in rows]))
+        print 'files: ', files
+        # Is this >1 because we have obs data (with no real information) or a dataset data
         if len(files)>1:
             # Piece together the data from multiple files.  That's what cdscan is for...
             # One problem is there may be more than one file family in the same
             # directory!  If we see more than one at this point, the user wasn't
             # careful in his specifications.  We'll just have to choose one.
             famdict = { f:self.extract_filefamilyname(f) for f in files }
+            print 'famdict: ', famdict
             families = list(set([ famdict[f] for f in files ]))
+            print 'families: ', families
             families.sort(key=len)  # a shorter name is more likely to be what we want
             if len(families)==0:
                 print "ERROR.  No data to reduce.  files[0]=:",files[0]
