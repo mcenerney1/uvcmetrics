@@ -125,7 +125,7 @@ class Options():
    def processCmdLine(self):
       parser = argparse.ArgumentParser(
          description='UV-CDAT Climate Modeling Diagnostics', 
-         usage='%(prog)s path1 [path2] [options]')
+         usage='%(prog)s --path1 [--path2] [options]')
 
       parser.add_argument('--path', '-p', action='append', nargs=1, 
          help="Path to dataset(s). At least one path is required.")
