@@ -1161,15 +1161,21 @@ class reduced_variable(ftrow):
                   proc = subprocess.Popen([cdscan_line],shell=True)
                   proc_status = proc.wait()
                   if proc_status!=0: print "ERROR: cdscan terminated with",proc_status
+        else: # only one file so we don't need to run cdscan, and 'xml_name' should just be the file name
+            print 'Only one file required for the data. ', files[0]
+            xml_name = files[0]
+      
 
-               fp = cdms2.open( xml_name )
-               fcf = get_datafile_filefmt(fp,options)
-               varname = fcf.variable_by_stdname(self.variableid)
-               reduced_data = self._reduction_function( fp(varname), vid=vid )
-               if reduced_data is not None:
-                  reduced_data._vid = vid
-               fp.close()
-               return reduced_data
+        print 'Opening ', xml_name
+        fp = cdms2.open( xml_name )
+        fcf = get_datafile_filefmt(fp,options)
+        varname = fcf.variable_by_stdname(self.variableid)
+        print 'Reducing ', varname
+        reduced_data = self._reduction_function( fp(varname), vid=vid )
+        if reduced_data is not None:
+           reduced_data._vid = vid
+        fp.close()
+        return reduced_data
 
 
 
