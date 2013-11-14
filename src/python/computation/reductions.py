@@ -1050,15 +1050,16 @@ class reduced_variable(ftrow):
 
     def extract_filefamilyname( self, filename ):
         """From a filename, extracts the first part of the filename as the possible
-        name of a family of files; e.g. from 'ts_Amon_bcc-csm1-1_amip_r1i1p1_197901-200812.nc'
-        extract and return 'ts_Amon_bcc-csm1-1_amip_r1i1p1'.  To distinguish between the
-        end of a file family name and the beginning of the file-specific part of the filename,
-        we look for an underscore and two numerical digits, e.g. '_19'."""
-        matchobject = re.search( r"^.*_\d\d", filename )
-        if matchobject is None:
+        name of a family of files; this looks for filenames that match the pattern:
+        {stuff[_.-]}{digits}[_.-]{digits}{.nc} where {stuff[_-.]} becomes the "basename"
+        This works for all examples I've seen from CLM and CAM runs"""
+        mo = re.search('(^.*[\-_.])(\d*)[\-_.](\d*)(\.nc)', filename)
+#        matchobject = re.search(r"$[.-_]\d*[.-_]\d*", filename[:-3])
+#        matchobject = re.search( r"^.*_\d\d", filename )
+        if mo is None:
             return filename
         else:
-            familyname = filename[0:(matchobject.end()-3)]
+            familyname = mo.group(1)
             return familyname        
 
     def reduce( self, options, vid=None ):
@@ -1082,90 +1083,93 @@ class reduced_variable(ftrow):
         # anything else inconvenient, and I'll assume CF compliance.
         #### NONE OF THIS WORKS WITHOUT A CDSCAN GENERATED XML FILE, AND GENERATION OF THAT IS NOT WORKING. FIX NEXT
         files = list(set([r.fileid for r in rows]))
-        print 'files: ', files
         # Is this >1 because we have obs data (with no real information) or a dataset data
         if len(files)>1:
             # Piece together the data from multiple files.  That's what cdscan is for...
             # One problem is there may be more than one file family in the same
             # directory!  If we see more than one at this point, the user wasn't
             # careful in his specifications.  We'll just have to choose one.
-            famdict = { f:self.extract_filefamilyname(f) for f in files }
-            print 'famdict: ', famdict
-            families = list(set([ famdict[f] for f in files ]))
-            print 'families: ', families
+            famdict = {}
+            for f in files:
+               famname = self.extract_filefamilyname(f)
+               if famname in famdict:
+                  famdict[famname].append(f)
+               else:
+                  famdict[famname] = [f]
+
+            families = famdict.keys()
+
+#            families = list(set([ famdict[f] for f in files ]))
             families.sort(key=len)  # a shorter name is more likely to be what we want
             if len(families)==0:
                 print "ERROR.  No data to reduce.  files[0]=:",files[0]
                 return None
-            elif len(families)>1:
-                print "WARNING: ",len(families)," file families found, will use the first one:",families
-            fam = families[0]
 
-            # We'll run cdscan to combine the multiple files into one logical file.
-            # To save (a lot of) time, we'll re-use an xml file if a suitable one already exists.
+            # So we have a dict that looks like:
+            # dict[fam] = filelist for fam
+            # loop over fams and run cdscan stuff on each family
+            # for each fam, see if there is an existing xml and use it, otherwise we have
+            # to generate one. 
             # To do this safely, incorporate the file list (names,lengths,dates) into the xml file name.
-            famfiles = [f for f in files if famdict[f]==fam]
-            famfiles.sort()   # improves consistency between runs
-            file_list = '-'.join(
-                [ f+'size'+str(os.path.getsize(f))+'mtime'+str(os.path.getmtime(f))\
-                      for f in famfiles ] )
-            csum = hashlib.md5(file_list).hexdigest()
-            xml_name = fam+'_cs'+csum+'.xml'
-            if os.path.isfile( xml_name ):
-                files = [ xml_name ]
 
-        if len(files)>1:
-            famfiles = [f for f in files if famdict[f]==fam]
-            # Normally when we get here, it's because data has been divided by time among
-            # several files.  So when cdscan puts it all back together, it needs the time
-            # units.  If the time variable is named 'time' and has a valid 'units'
-            # attribute, we're fine; otherwise we're in trouble.  But for some AMWG obs
-            # data which I have, the time units may be found in the long_name attribute.
-            # The -e option will normally be the way to fix it up, but maybe the -r option
-            # could be made to work.
-            
-            # I know of no exception to the rule that all files in the file family keep their
-            # units in the same place; so find where they are by checking the first file.
-            f = cdms2.open( famfiles[0] )
-            time_units = f['time'].units
-            if type(time_units) is str and len(time_units)>3:
-                # cdscan can get time units from the files; we're good.
-                f.close()
-                cdscan_line = 'cdscan -q '+'-x '+xml_name+' '+' '.join(famfiles)
-            else:
-                # cdscan need to be told what the time units are.  I'm betting that all files
-                # use the same units.  I know of cases where they all have different units (e.g.,
-                # GISS) but in all those cases, the units attribute is used properly, so we don't
-                # get here.
-                # Another problem is that units stuck in the long_name sometimes are
-                # nonstandard.  So fix them!
-                time_units = f['time'].long_name
-                f.close()
-                if type(time_units) is str and len(time_units)>1 and (
-                    time_units.find('months')==0 or time_units.find('days')==0 or
-                    time_units.find('hours')==0 ):
-                    time_units = fix_time_units( time_units )
-                    cdscan_line = 'cdscan -q '+'-x '+xml_name+' -e time.units="'+time_units+'" '+\
-                        ' '.join(famfiles)
-                else:
-                    print "WARNING, cannot find time units; will try to continue",famfiles[0]
-                    cdscan_line = 'cdscan -q '+'-x '+xml_name+' -e time.units="'+time_units+'" '+\
-                        ' '.join(famfiles)
-            print "cdscan_line=",cdscan_line
-            proc = subprocess.Popen([cdscan_line],shell=True)
-            proc_status = proc.wait()
-            if proc_status!=0: print "ERROR: cdscan terminated with",proc_status
-            f = cdms2.open( xml_name )
-        else:
-            # the easy case, just one file has all the data on this variable
-            f = cdms2.open(files[0])
-        fcf = get_datafile_filefmt(f,options)
-        varname = fcf.variable_by_stdname(self.variableid)
-        reduced_data = self._reduction_function( f(varname), vid=vid )
-        if reduced_data is not None:
-            reduced_data._vid = vid
-        f.close()
-        return reduced_data
+
+            families.sort() # the keys for the various families
+            file_list={}
+            for m in families:
+               famdict[m].sort() # for consistency 
+               hashstr = ''
+               for f in famdict[m]:
+                  print f
+                  hashstr = hashstr + str(f)
+                  hashstr = hashstr + str(os.path.getsize(f))
+                  hashstr = hashstr + str(os.path.getmtime(f))
+               csum = hashlib.md5(hashstr).hexdigest()
+               xml_name = m+csum+'.xml'
+               if os.path.isfile(xml_name): # the xml file exists, use it
+                  print 'Found an existing xml file for this dataset'
+                  pass
+               else: # we need to generate the XML files
+                  # start by getting units info from the first file in the family
+                  print 'Going to get units from ', famdict[m][0]
+                  f = cdms2.open(famdict[m][0])
+                  time_units = f['time'].units
+                  if type(time_units) is str and len(time_units)>3:
+                      # cdscan can get time units from the files; we're good.
+                     f.close()
+                     cdscan_line = 'cdscan -q '+'-x '+xml_name+' '+' '.join(famdict[m])
+                  else:
+                     # cdscan need to be told what the time units are.  I'm betting that all files
+                     # use the same units.  I know of cases where they all have different units (e.g.,
+                     # GISS) but in all those cases, the units attribute is used properly, so we don't
+                     # get here.
+                     # Another problem is that units stuck in the long_name sometimes are
+                     # nonstandard.  So fix them!
+                     time_units = f['time'].long_name
+                     f.close()
+                     if type(time_units) is str and len(time_units)>1 and (
+                      time_units.find('months')==0 or time_units.find('days')==0 or
+                      time_units.find('hours')==0 ):
+                        time_units = fix_time_units( time_units )
+                        cdscan_line = 'cdscan -q '+'-x '+xml_name+' -e time.units="'+time_units+'" '+\
+                        ' '.join(famdict[m])
+                     else:
+                        print "WARNING, cannot find time units; will try to continue with time_unis=",time_units
+                        cdscan_line = 'cdscan -q '+'-x '+xml_name+' -e time.units="'+time_units+'" '+\
+                        ' '.join(famfdict[m])
+
+                  print "cdscan_line=",cdscan_line
+                  proc = subprocess.Popen([cdscan_line],shell=True)
+                  proc_status = proc.wait()
+                  if proc_status!=0: print "ERROR: cdscan terminated with",proc_status
+
+               fp = cdms2.open( xml_name )
+               fcf = get_datafile_filefmt(fp,options)
+               varname = fcf.variable_by_stdname(self.variableid)
+               reduced_data = self._reduction_function( fp(varname), vid=vid )
+               if reduced_data is not None:
+                  reduced_data._vid = vid
+               fp.close()
+               return reduced_data
 
 
 
