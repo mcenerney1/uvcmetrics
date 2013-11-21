@@ -18,6 +18,7 @@ from frontend.options import Options
 from computation.reductions import *
 from fileio.filetable import *
 from fileio.findfiles import *
+from frontend.treeview import TreeView
 import packages
 
 
@@ -45,7 +46,7 @@ if __name__ == '__main__':
    datafiles = []
    filetables = []
    vars = o._opts['vars']
-   print vars
+#   print vars
 
    index = 0
    for p in o._opts['path']:
@@ -57,8 +58,7 @@ if __name__ == '__main__':
       filetables.append(basic_filetable(datafiles[index], o))
       index = index+1
 
-   print filetables[0]._varindex.keys()
-
+   """
    for var in o._opts['vars']:
       if var in filetables[0]._varindex.keys():
          for seas in o._opts['times']:
@@ -79,15 +79,18 @@ if __name__ == '__main__':
             mv = red.missing_value
             data['missing_value'] = mv
             data['geo_average_data'] = red.data.tolist()
+            g_avg = cdutil.averager(red, axis='xy')
+            data['geo_average_global'] = g_avg.data.tolist()
             json.dump(data, g, separators=(',',':'))
             g.close()
+            print 'Done writing ', filename
 
-
-
-
-
-
+   """
+   tv = TreeView()
+   dtree = tv.makeTree(o, filetables)
+   tv.dump(filename='flare.json')
    quit()
+   
 
 
 #   print filetables[0].find_files('TG')
