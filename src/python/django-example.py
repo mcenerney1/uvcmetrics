@@ -1,12 +1,5 @@
 #!/usr/local/uvcdat/1.3.1/bin/python
 
-# geo_average_min, max, and overall_avg
-# annual average years
-# annual average values
-# geo average data
-
-
-
 # High-level functions to convert data to climatology files.
 # These are, in my understanding, files which have a time-average of the original
 # variables, with the time often restricted to a month or season.
@@ -23,48 +16,36 @@ import packages
 
 
 # This is all entirely too complicated for what it does.
-class climatology_variable(reduced_variable):
-   def __init__(self, varname, filetable, seasonname='ANN'):
-      print varname
-      vid = 'reduced_'+varname
-      if seasonname =='ANN':
-         reduced_variable.__init__(self,
-            variableid=varname, filetable=filetable,
-            reduction_function=(lambda x, vid=vid: reduce_time(x, vid=vid)))
-      else:
-         season = cdutil.times.Seasons([seasonname])
-         reduced_variable.__init__(self,
-            variableid=varname, filetable=filetable,
-            reduction_function=(lambda x, vid=vid: reduce_time_seasonal(x, season, vid=vid)))
 
 if __name__ == '__main__':
    o = Options()
-   o.processCmdLine()
-   o.verifyOptions()
+#   o.processCmdLine()
+#   o.verifyOptions()
+
+   ##### SET THESE BASED ON USER INPUT FROM THE GUI
+   o._opts['vars'] = ['TG', 'TV', 'PBOT'] 
+   o._opts['path'] = ['/path/to/a/dataset'] 
+   o._opts['times'] = ['JAN', 'FEB', 'DJF']
+   ### NOTE: 'ANN' won't work for times this way, but that shouldn't be a problem
+   #####
+
+   #### This will generate {var}-{times}-climatology.json
 
    # At this point, we have our options specified. Need to generate some climatologies and such
    datafiles = []
    filetables = []
    vars = o._opts['vars']
-   print vars
+#   print vars
 
    index = 0
    for p in o._opts['path']:
-      if(o._opts['verbose'] >= 1):
-         print 'Creating datafiles list for path ', p
       datafiles.append(dirtree_datafiles(p))
-      if(o._opts['verbose'] >= 1):
-         print 'Creating filetable for path ', p
       filetables.append(basic_filetable(datafiles[index], o))
       index = index+1
 
-   
    for var in o._opts['vars']:
-      print var
-      print filetables[0]._varindex.keys()
       if var in filetables[0]._varindex.keys():
          for seas in o._opts['times']:
-            print 'inner loop'
             vid = str(var)+'_'+str(seas)
             season = cdutil.times.Seasons([seas])
             rvar = reduced_variable(variableid = var,
@@ -88,10 +69,8 @@ if __name__ == '__main__':
             g.close()
             print 'Done writing ', filename
 
-   
-#   tv = TreeView()
-#   dtree = tv.makeTree(o, filetables)
-#   tv.dump(filename='flare.json')
-   quit()
-   
+   print 'Creating diags tree view JSON file...'
+   tv = TreeView()
+   dtree = tv.makeTree(o, filetables)
+   tv.dump(filename='flare.json')
 

@@ -28,11 +28,13 @@ packages = {'metrics': 'src/python',
               'metrics.graphics': 'src/python/graphics',
               'metrics.frontend': 'src/python/frontend',
               'metrics.computation': 'src/python/computation',
-              'metrics.wgne': 'src/python/wgne',
-              'metrics.amwg': 'src/python/amwg',
-              'metrics.amwg.derivations': 'src/python/amwg/derivations'}
-for d in packages.itervalues():
-    shutil.copy("git.py",os.path.join(d,"git.py"))
+              'metrics.packages.wgne': 'src/python/packages/wgne',
+              'metrics.packages.amwg': 'src/python/packages/amwg',
+              'metrics.packages.lmwg': 'src/python/packages/lmwg',
+              'metrics.packages.common': 'src/python/packages/common',
+              'metrics.packages.amwg.derivations': 'src/python/packages/amwg/derivations'}
+#for d in packages.itervalues():
+#    shutil.copy("git.py",os.path.join(d,"git.py"))
 
 setup (name = "metrics",
        version=Version,
@@ -41,15 +43,17 @@ setup (name = "metrics",
        url = "http://uvcdat.llnl.gov",
        packages = ['metrics',
                    'metrics.fileio',
-                   'metrics.wgne',
-                   'metrics.amwg',
-                   'metrics.amwg.derivations',
+                   'metrics.packages.wgne',
+                   'metrics.packages.amwg',
+                   'metrics.packages.amwg.derivations',
+                   'metrics.packages.lmwg',
+                   'metrics.packages.common',
                    'metrics.graphics',
                    'metrics.frontend',
                    'metrics.computation'
                    ],
        package_dir = packages,
-       scripts = ["src/python/wgne/scripts/wgne_metrics_driver.py",],
+       scripts = ["src/python/packages/wgne/scripts/wgne_metrics_driver.py",],
        #include_dirs = [numpy.lib.utils.get_include()],
        #       ext_modules = [
        #    Extension('metrics.exts',
