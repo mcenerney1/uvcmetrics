@@ -6,6 +6,7 @@ import packages
 class Options():
    all_months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
    all_seasons = ['DJF', 'MAM', 'JJA', 'SON']
+   all_regions = ['North America', 'South America']
 
    def __init__(self):
       self._opts = {}
@@ -55,13 +56,13 @@ class Options():
       return
       # List all vars given a realm. This might be complicated to implement
       # Used to speed up the tree-based diags viewer from ORNL
-   def listAllSets(self, realm, key=None):
-      # List all sets given a realm.
-      # mostly used for the tree-based diags viewer from ORNL
+   def listAllSets(self, realm=None, package=None):
+      # primarily intended to make a JSON file for the d3 tree diags
+      # most of this code moved to TreeView. Do we still need this functionality?
       return
 
    def listSets(self, package, key=None):
-      if key != None:
+      if key != None: # For a specific field in the sets list, ie, key=name for example returns names
          kys = self.all_sets[package].keys()
          # assume "setXX" where XX is a number and we want "10" after "9" not "1"
          kys.sort(key=lambda x:int(filter(str.isdigit, x)))
@@ -76,6 +77,10 @@ class Options():
 #         return list(self.all_sets[package].keys()).sort(key=lambda x:int(x[3:]))
 #         return self.all_sets[package].keys()
       #return self.all_sets[realm][package]
+
+   def listVariables(self, package, setname):
+      # needs to ask the package for a list; could include derived vars, etc. complicated.
+      return
 
    def listRealms(self):
       return self.all_realms
@@ -180,7 +185,7 @@ class Options():
       parser.add_argument('--name', action='append', nargs=1,
          help="Specify option names for the datasets for plot titles, etc") #optional name for the set
       # This will be the standard list of region names NCAR has
-      parser.add_argument('--region', '--regions', nargs='+', choices=["North America", "South America"],
+      parser.add_argument('--region', '--regions', nargs='+', choices=self.all_regions,
          help="Specify a geographical region of interest")
 
 
@@ -218,6 +223,15 @@ class Options():
                print 'Avaialble sets for package ', p, ':'
                print self.listSets(p)
                
+         if args.list[0] == 'allsets':
+            if args.realm == None:
+               self.listAllSets()
+            else:
+               if args.packages == None:
+                  self.listAllSets(realm=args.realm[0])
+               else:
+                  self.listAllSets(realm=args.realm[0], package=args.packages[0])
+            quit()
 
          if args.list[0] == 'variables':
             print "Listing variables not yet supported"
@@ -313,7 +327,11 @@ class Options():
             for p in self.all_packages[self._opts['realm']]:
                if m == p:
                   plist.append(m)
-         self._opts['packages'] = plist
+         if plist == []:
+            print 'Package name(s) ', args.packages, ' not valid'
+            quit()
+         else:
+            self._opts['packages'] = plist
 
 
       # Given user-selected packages, check for user specified sets
@@ -335,17 +353,17 @@ class Options():
       # If --yearly is set, then we will add 'ANN' to the list of climatologies
       if(args.yearly == True):
          self._opts['yearly'] = True
-         self._opts['times'] = self._opts['times']+'ANN'
+         self._opts['times'].append('ANN')
 
       # If --monthly is set, we add all months to the list of climatologies
       if(args.monthly == True):
          self._opts['monthly'] = True
-         self._opts['times'] = self._opts['times']+self.all_months
+         self._opts['times'].extend(self.all_months)
 
       # If --seasonally is set, we add all 4 seasons to the list of climatologies
       if(args.seasonally == True):
          self._opts['seasonally'] = True
-         self._opts['times'] = self._opts['times']+self.all_seasons
+         self._opts['times'].extend(self.all_seasons)
 
       # This allows specific individual months to be added to the list of climatologies
       if(args.months != None):
