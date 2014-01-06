@@ -1,4 +1,7 @@
-import frontend.options
+try:
+   import frontend.options
+except:
+   import metrics.frontend.options
 
 class TreeView():
    
@@ -21,6 +24,8 @@ class TreeView():
       else:
          packs = packages
 
+      join = '|'
+      baseurl = 'baseurl:'
       for pack in packs:
          p = {}
          p['name'] = pack
@@ -45,7 +50,7 @@ class TreeView():
                   for t in options._opts['times']:
                      times = {}
                      times['name'] = t
-                     times['url'] = 'url:'+t+v+str(ds)
+                     times['url'] = baseurl+join+pack+join+s+join+t+join+v+join+'dataset'+str(ds)
                      var['children'].append(times)
                   sets['children'].append(var)
                dataset['children'].append(sets)

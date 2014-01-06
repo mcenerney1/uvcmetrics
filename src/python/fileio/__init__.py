@@ -2,5 +2,5 @@
 import base
 import filetable
 import findfiles
-import git
+#import git
 

@@ -4,13 +4,23 @@
 # There's a whole lot left to do!
 
 import cdms2, math
-from metrics.fileio.filetable import *
-from metrics.fileio.findfiles import *
-from metrics.computation.reductions import *
-from metrics.computation.plotspec import *
-from metrics.amwg.derivations.oaht import *
-from metrics.amwg.derivations.ncl_isms import *
-from metrics.amwg.derivations.vertical import *
+try:
+   from fileio.filetable import *
+   from fileio.findfiles import *
+   from computation.reductions import *
+   from computation.plotspec import *
+   from packages.amwg.derivations.oaht import *
+   from packages.amwg.derivations.ncl_isms import *
+   from packages.amwg.derivations.vertical import *
+except:
+   from metrics.fileio.filetable import *
+   from metrics.fileio.findfiles import *
+   from metrics.computation.reductions import *
+   from metrics.computation.plotspec import *
+   from metrics.packages.amwg.derivations.oaht import *
+   from metrics.packages.amwg.derivations.ncl_isms import *
+   from metrics.packages.amwg.derivations.vertical import *
+
 from pprint import pprint
 
 
@@ -573,7 +583,10 @@ def test_driver( path1, path2=None, filt2=None ):
 
 if __name__ == '__main__':
    if len( sys.argv ) > 1:
-      from findfiles import *
+      try:
+         from findfiles import *
+      except:
+         from metrics.findfiles import *
       path1 = sys.argv[1]
       if len( sys.argv ) > 2:
           path2 = sys.argv[2]

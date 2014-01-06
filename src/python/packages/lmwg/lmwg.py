@@ -1,147 +1,242 @@
-from diagnostic_groups import *
-from computation.reductions import *
-#from metrics.frontend.uvcdat import *
-from unidata import udunits
-import cdutil.times
-from defines import *
+#!/usr/local/uvcdat/1.3.1/bin/python
 
-### Properties for a graph:
-## Axis name/type
-## Graph type
-## Units
-## Data
-## Title
-## Any others?
+# Top-leve definition of LMWG Diagnostics.
+# LMWG = Atmospheric Model Working Group
+
+try:
+   from packages.common.diagnostic_groups import *
+   from computation.reductions import *
+   from frontend.uvcdat import *
+except:
+   from metrics.packages.common.diagnostic_groups import *
+   from metrics.computation.reductions import *
+   from metrics.frontend.uvcdat import *
 
 class LMWG(BasicDiagnosticGroup):
-   """ This is mostly the AMWG.py code, but I am trying to make as many
-       'properties' based plots as I can rather than hardcoding each
-       set (beyond derived variables lists, etc)
-   """
-
-   def __init__(self):
-      pass
-   def list_variables( self, filetable1, filetable2=None, diagnostic_set_name="" ):
-      if diagnostic_set_name!="":
-         dset = self.list_diagnostic_sets().get( diagnostic_set_name, None )
-         if dset is None:
+    """This class defines features unique to the LMWG Diagnostics.
+    This is basically a copy and stripping of amwg.py since I can't
+    figure out the code any other way. I am hoping to simplify this
+    at some point"""
+    def __init__(self):
+        print '********************************************************************in LMWG init'
+    def list_variables( self, filetable1, filetable2=None, diagnostic_set_name="" ):
+        print 'class upper list vars'
+        if diagnostic_set_name!="":
+            dset = self.list_diagnostic_sets().get( diagnostic_set_name, None )
+            if dset is None:
+                return self._list_variables( filetable1, filetable2 )
+            else:   # Note that dset is a class not an object.
+                return dset._list_variables( filetable1, filetable2 )
+        else:
             return self._list_variables( filetable1, filetable2 )
-         else:   # Note that dset is a class not an object.
-            return dset._list_variables( filetable1, filetable2 )
-      else:
-         return self._list_variables( filetable1, filetable2 )
-   @staticmethod
-   def _list_variables( filetable1, filetable2=None, diagnostic_set_name="" ):
-      return BasicDiagnosticGroup._list_variables( filetable1, filetable2, diagnostic_set_name )
-   def list_diagnostic_sets( self ):
-      l = []
-      for key in package_ids:
-         l.append({key:package_sets[key]['name']})
-      return l
-#        plot_sets = lmwg_plot_spec.__subclasses__()
-#        return { aps.name:aps for aps in plot_sets if hasattr(aps,'name') }
+    @staticmethod
+    def _list_variables( filetable1, filetable2=None, diagnostic_set_name="" ):
+        print 'class list vars'
+        return BasicDiagnosticGroup._list_variables( filetable1, filetable2, diagnostic_set_name )
+
+    @staticmethod
+    def _all_variables( filetable1, filetable2, diagnostic_set_name ):
+        print 'call all vars'
+        return BasicDiagnosticGroup._all_variables( filetable1, filetable2, diagnostic_set_name )
+
+    def list_diagnostic_sets( self ):
+      # This should call up to the defines stuff. The name in the class seems hacky
+        psets = lmwg_plot_spec.__subclasses__()
+        plot_sets = psets
+        for cl in psets:
+            plot_sets = plot_sets + cl.__subclasses__()
+        foo2 = {}
+        for aps in plot_sets:
+         if hasattr(aps, 'name'):
+            foo2[aps.name] = aps
+        print foo2
+
+#        foo = { aps.name:aps for aps in plot_sets if hasattr(aps,'name') }
+        print 'printing foo2'
+        return foo2
+        print 'done'
+        #return { aps.name:(lambda ft1, ft2, var, seas: aps(ft1,ft2,var,seas,self))
+        #         for aps in plot_sets if hasattr(aps,'name') }
 
 class lmwg_plot_spec(plot_spec):
     package = LMWG  # Note that this is a class not an object.
     @staticmethod
     def _list_variables( filetable1, filetable2=None ):
+        print 'spec list vars'
         return lmwg_plot_spec.package._list_variables( filetable1, filetable2, "lmwg_plot_spec" )
+    @staticmethod
+    def _all_variables( filetable1, filetable2=None ):
+        print 'spec all vars'
+        return lmwg_plot_spec.package._all_variables( filetable1, filetable2, "lmwg_plot_spec" )
 
 # plot set classes we need which I haven't done yet:
-# What I'd like to be able to do is say:
-# Plot set 2 - Horizontal Contour Plots for plot type
-#            - Seasonal and ANN climatologies
-#            - Normal vars
-#            - Derived vars
-#            - Generate plots
+class lmwg_plot_set1(lmwg_plot_spec):
+   name = ' 1- Line plots of annual trends in energy balance, soil water/ice and temperature, runoff, snow water/ice, photosynthesis '
+   def __init__(self, filetable1, filetable2, varid, seasonid=None, aux=None):
+      plot_spec.__init__(self,seasonid)
+      self.plottype = 'Yxvsx'
+      #seasonid is ignored
+
+      self._var_baseid = '_'.join([varid, 'set1'])
+      self.plot1_id = filetable1._id+'_'+varid
+      self.plot2_id = filetable2._id+'_'+varid
+      self.plot3_id = filetable1._id+' - '+filetable2._id+'_'+varid
+      self.plotall_id = filetable1._id+'_'+filetable2._id+'_'+varid
+
+      if not self.computation_planned:
+         self.plan_computation(filetable1, filetable2, varid, seasonid, aux)
+   @staticmethod
+   def _list_variables(filetable1, filetable2=None):
+      allvars = lmwg_plot_set1._all_variables(filetable1, filetable2)
+      listvars = allvars.keys()
+      listvars.sort()
+      return listvars
+
+   @staticmethod
+   def _all_variables(filetable1, filetable2=None):
+      allvars = lmwg_plot_spec.package._all_variables(filetable1, filetable2, "lmwg_plot_spec")
+      return allvars
+
+   def plan_computation(self, filetable1, filetable2, varid, seasonid, aux=None):
+      self.reduced_variables = {
+         varid+'_1':reduced_variable(
+            variableid = varid, filetable=filetable1, reduced_var_id=varid+'_1',
+            reduction_function=(lambda x, vid: reduceAnnTrend(x, vid))),
+         varid+'_2':reduced_variable(
+            variableid = varid, filetable=filetable2, reduced_var_id=varid+'_2',
+            reduction_function=(lambda x, vid: reduceAnnTrend(x, vid)))
+      }
+
+      self.derived_variables = {
+         'PREC_1': derived_var(vid='PREC_1', inputs=['RAIN_1', 'SNOW_1'], func=aplusb),
+         'PREC_2': derived_var(vid='PREC_2', inputs=['RAIN_2', 'SNOW_2'], func=aplusb)
+      }
+      self.single_plotspecs = {
+         self.plot1_id: plotspec(
+            vid=varid+'_1',
+            zvars = [varid+'_1'], zfunc=(lambda z: z),
+            plottype = self.plottype) } #,
+#         self.plot2_id: plotspec(
+#            vid=varid+'_2',
+#            zvars = [varid+'_2'], zfunc=(lambda z: z),
+#            plottype = self.plottype) }
+#         self.plot3_id: plotspec(
+#            vid=varid+'_1',
+#            zvars = [varid+'_1', varid+'_2'], zfunc=aminusb,
+#            plottype = self.plottype) }
+#         }
+      self.composite_plotspecs = {
+#            self.plotall_id: [self.plot1_id, self.plot2_id, self.plot3_id] 
+            self.plotall_id: [self.plot1_id]
+      }
+
+      self.computation_planned = True
+
+   def _results(self):
+      results = plot_spec._results(self)
+      if results is None: return None
+      return self.plotspec_values[self.plotall_id]
+         
+
 
 class lmwg_plot_set2(lmwg_plot_spec):
-    """represents one plot from lmwg Diagnostics Plot Set 2.
-    Each such plot is a set of three contour plots: one each for model output, observations, and
-    the difference between the two.  A plot's x-axis is longitude and its y-axis is the latitude;
-    normally a world map will be overlaid.
-    """
-    def __init__( self, filetable1, filetable2, varid, seasonid=None ):
-        """filetable1, filetable2 should be filetables for model and obs.
-        varid is a string identifying the variable to be plotted, e.g. 'TREFHT'.
-        seasonid is a string such as 'DJF'."""
-        plot_spec.__init__(self,seasonid)
-        self.plottype = 'Isofill'
-        self.season = cdutil.times.Seasons(self._seasonid)  # note that self._seasonid can differ froms seasonid
+   name = ' 2- Horizontal contour plots of DJF, MAM, JJA, SON, and ANN means'
+   def __init__( self, filetable1, filetable2, varid, seasonid=None, aux=None ):
+      """filetable1, filetable2 should be filetables for two datasets for now. Need to figure
+      out obs data stuff for lmwg at some point
+      varid is a string identifying the variable to be plotted, e.g. 'TREFHT'.
+      seasonid is a string such as 'DJF'."""
+      plot_spec.__init__(self,seasonid)
+      print 'init called'
+      self.plottype = 'Isofill'
+      print '_seasonid: ', self._seasonid, ' seasonid: ', seasonid
+      if self._seasonid == 'ANN':
+         self.season = cdutil.times.Seasons('JFMAMJJASOND')
+      else:
+         self.season = cdutil.times.Seasons(self._seasonid)
 
-        self._var_baseid = '_'.join([varid,'set2'])   # e.g. TREFHT_set5
-        self.plot1_id = filetable1._id+'_'+varid+'_'+seasonid
-        self.plot2_id = filetable2._id+'_'+varid+'_'+seasonid
-        self.plot3_id = filetable1._id+' - '+filetable2._id+'_'+varid+'_'+seasonid
-        self.plotall_id = filetable1._id+'_'+filetable2._id+'_'+varid+'_'+seasonid
+      self._var_baseid = '_'.join([varid,'set2'])   # e.g. TREFHT_set2
+      self.plot1_id = filetable1._id+'_'+varid+'_'+seasonid
+      self.plot2_id = filetable2._id+'_'+varid+'_'+seasonid
+      self.plot3_id = filetable1._id+' - '+filetable2._id+'_'+varid+'_'+seasonid
+      self.plotall_id = filetable1._id+'_'+filetable2._id+'_'+varid+'_'+seasonid
 
-        if not self.computation_planned:
-            self.plan_computation( filetable1, filetable2, varid, seasonid )
-    def plan_computation( self, filetable1, filetable2, varid, seasonid ):
-        self.reduced_variables = {
-            varid+'_1': reduced_variable(
-                variableid=varid, filetable=filetable1, reduced_var_id=varid+'_1',
-                reduction_function=(lambda x,vid: reduce2latlon_seasonal( x, self.season, vid ) ) ),
-            varid+'_2': reduced_variable(
-                variableid=varid, filetable=filetable2, reduced_var_id=varid+'_2',
-                reduction_function=(lambda x,vid: reduce2latlon_seasonal( x, self.season, vid ) ) )
-            }
-        self.derived_variables = {'PREC': derived_var(
-         vid ='PREC',
-         inputs=[['RAIN', 'SNOW']],
-         outputs=[],
-         func=sumvarlist),
-        'TOTRUNOFF': derived_var(
-         vid = 'TOTRUNOFF',
-         inputs=[['QOVER', 'QDRAI', 'QRGWL']],
-         outputs=[],
-         func=sumvarlist),
-        'LHEAT' : derived_var(
-         vid = 'LHEAT',
-         inputs=[['FCTR', 'FCEV', 'FGEV']],
-         outputs=[],
-         func=sumvarlist),
-        'ET': derived_var(
-         vid = 'ET',
-         inputs=[['QSOIL', 'QVEGE', 'QVEGT']],
-         outputs=[],
-         func=sumvarlist),
-        'PminusE': derived_var(
-         vid = 'PminusE',
-         inputs=['PREC', 'ET'],
-         outputs=[],
-         func=aminusb),
-        'ASA' : derived_var(
-         vid = 'ASA',
-         inputs=[['FSR', 'FSDS']],
-         outputs=[],
-         func=adivb),
-        'EVAPFRAC': derived_var(
-         vid = 'EVAPFRAC',
-         inputs=[['LHEAT', 'FSH']],
-         outputs=[],
-         func=adivapb)}
-        self.single_plotspecs = {
-            self.plot1_id: plotspec(
-                vid = varid+'_1',
-                zvars = [varid+'_1'],  zfunc = (lambda z: z),
-                plottype = self.plottype ),
-            self.plot2_id: plotspec(
-                vid = varid+'_2',
-                zvars = [varid+'_2'],  zfunc = (lambda z: z),
-                plottype = self.plottype ),
-            self.plot3_id: plotspec(
-                vid = varid+' diff',
-                zvars = [varid+'_1',varid+'_2'],  zfunc = aminusb_2ax,
-                plottype = self.plottype )
-            }
-        self.composite_plotspecs = {
-            self.plotall_id: [ self.plot1_id, self.plot2_id, self.plot3_id ]            
-            }
-        self.computation_planned = True
-    def _results(self):
-        results = plot_spec._results(self)
-        if results is None: return None
-        return self.plotspec_values[self.plotall_id]
+      if not self.computation_planned:
+         self.plan_computation( filetable1, filetable2, varid, seasonid, aux )
+
+   @staticmethod
+   def _list_variables( filetable1, filetable2=None ):
+      print 'list vars called'
+      quit()
+      allvars = lmwg_plot_set2._all_variables( filetable1, filetable2 )
+      listvars = allvars.keys()
+      print 'listvars:' , listvars
+      listvars.sort()
+      return listvars
+
+   @staticmethod
+   def _all_variables( filetable1, filetable2=None ):
+      allvars = lmwg_plot_spec.package._all_variables( filetable1, filetable2, "lmwg_plot_spec" )
+      print 'allvars: ', allvars
+      quit()
+      return allvars
+
+   def plan_computation( self, filetable1, filetable2, varid, seasonid, aux=None ):
+      """Set up for a lat-lon contour plot, as in plot set 5.  Data is averaged over all other
+      axes."""
+      print 'plan compute called'
+      self.reduced_variables = {
+         varid+'_1': reduced_variable(
+            variableid=varid, filetable=filetable1, reduced_var_id=varid+'_1',
+            reduction_function=(lambda x,vid: reduce2latlon_seasonal( x, self.season, vid ) ) ),
+         varid+'_2': reduced_variable(
+            variableid=varid, filetable=filetable2, reduced_var_id=varid+'_2',
+            reduction_function=(lambda x,vid: reduce2latlon_seasonal( x, self.season, vid ) ) )
+      }
+
+      self.derived_variables = {
+         'PREC_1': derived_var(vid='PREC_1', inputs=['RAIN_1', 'SNOW_1'], func = aplusb),
+         'PREC_2': derived_var(vid='PREC_2', inputs=['RAIN_2', 'SNOW_2'], func = aplusb)
+      }
+
+      self.single_plotspecs = {
+         self.plot1_id: plotspec(
+            vid = varid+'_1',
+            zvars = [varid+'_1'], zfunc = (lambda z: z),
+            plottype = self.plottype) } #,
+#         self.plot2_id: plotspec(
+#            vid = varid+'_2',
+#            zvars = [varid+'_2'], zfunc = (lambda z: z),
+#            plottype = self.plottype),
+#         self.plot3_id: plotspec(
+#            vid = varid+' diff',
+#            zvars = [varid+'_1', varid+'_2'], zfunc = aminusb,
+#            plottype = self.plottype)
+#      }
+      self.composite_plotspecs = {
+#         self.plotall_id: [self.plot1_id, self.plot2_id, self.plot3_id]
+         self.plotall_id: [self.plot1_id ]
+      }
+      self.computation_planned = True
+
+   def _results(self):
+      results = plot_spec._results(self)
+      if results is None: return None
+      return self.plotspec_values[self.plotall_id]
 
 
+
+class lmwg_plot_set3(lmwg_plot_spec):
+    pass
+class lmwg_plot_set4(lmwg_plot_spec):
+    pass
+class lmwg_plot_set5(lmwg_plot_spec):
+    pass
+class lmwg_plot_set6(lmwg_plot_spec):
+    pass
+class lmwg_plot_set7(lmwg_plot_spec):
+    pass
+class lmwg_plot_set8(lmwg_plot_spec):
+    pass
+class lmwg_plot_set9(lmwg_plot_spec):
+    pass

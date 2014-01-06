@@ -2,12 +2,20 @@
 
 # Features common to standard diagnostics from all groups, e.g. AMWG, LMWG.
 
-from metrics.fileio.filetable import basic_filetable
-import metrics.frontend.options
+try:
+   from fileio.filetable import basic_filetable
+   from frontend.options import *
+except:
+   from metrics.fileio.filetable import basic_filetable
+   from metrics.frontend.options import *
 
 def diagnostics_menu():
-    from metrics.amwg.amwg import AMWG
-    from metrics.lmwg.lmwg import LMWG
+    try:
+       from packages.amwg.amwg import AMWG
+       from packages.lmwg.lmwg import LMWG
+    except:
+       from metrics.packages.amwg.amwg import AMWG
+       from metrics.packages.lmwg.lmwg import LMWG
     return { "AMWG":AMWG, "LMWG":LMWG }
 
 class BasicDiagnosticGroup(Options):
@@ -36,12 +44,18 @@ class BasicDiagnosticGroup(Options):
                 return dset._all_variables( filetable1, filetable2 )
         else:
             varlist = self._list_variables( filetable1, filetable2 )
-        from metrics.frontend.uvcdat import basic_plot_variable
+        try:
+           from frontend.uvcdat import basic_plot_variable
+        except:
+           from metrics.frontend.uvcdat import basic_plot_variable
         return { vn: basic_plot_variable for vn in varlist }
     @staticmethod
     def _all_variables( filetable1, filetable2=None, diagnostic_set_name="" ):
         varlist = BasicDiagnosticGroup._list_variables( filetable1, filetable2, diagnostic_set_name )
-        from metrics.frontend.uvcdat import basic_plot_variable
+        try:
+           from frontend.uvcdat import basic_plot_variable
+        except:
+           from metrics.frontend.uvcdat import basic_plot_variable
         return { vn: basic_plot_variable for vn in varlist }
     @staticmethod
     def _list_variables( filetable1, filetable2=None, diagnostic_set_name="" ):
@@ -49,10 +63,12 @@ class BasicDiagnosticGroup(Options):
         starting point for developing something for a particular diagnostic group"""
         if filetable1 is None: return []
         vars1 = filetable1.list_variables()
+        print vars1
         if not isinstance( filetable2, basic_filetable ): return vars1
         if filetable2.nrows()==0: return vars1
         vars2 = filetable2.list_variables()
-        varset = set(vars1).intersection(set(vars2))
+        varset = set(vars1).union(set(vars2))
+#        varset = set(vars1).intersection(set(vars2))
         vars = list(varset)
         vars.sort()
         return vars

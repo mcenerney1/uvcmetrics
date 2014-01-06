@@ -7,12 +7,20 @@
 
 import cdms2, math, cdutil, genutil, json
 
-from frontend.options import Options
-from computation.reductions import *
-from fileio.filetable import *
-from fileio.findfiles import *
-from frontend.treeview import TreeView
-import packages
+try:
+   from frontend.options import Options
+   from computation.reductions import *
+   from fileio.filetable import *
+   from fileio.findfiles import *
+   from frontend.treeview import TreeView
+   import packages
+except:
+   from metrics.frontend.options import Options
+   from metrics.computation.reductions import *
+   from metrics.fileio.filetable import *
+   from metrics.fileio.findfiles import *
+   from metrics.frontend.treeview import TreeView
+   import metrics.packages
 
 
 # This is all entirely too complicated for what it does.

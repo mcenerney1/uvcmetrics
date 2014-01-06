@@ -1,7 +1,11 @@
 #  put here the import calls to expose whatever we want to the user
-import fileio
-#import wgne
-import computation
-#import amwg
-import frontend
+try:
+   import fileio
+   import computation
+   import frontend
+except:
+   import metrics.fileio
+   import metrics.computation
+   import metrics.frontend
+
 import git

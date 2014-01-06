@@ -3,9 +3,10 @@
 # Top-leve definition of AMWG Diagnostics.
 # AMWG = Atmospheric Model Working Group
 
-from metrics.diagnostic_groups import *
+from metrics.packages.common.diagnostic_groups import *
 from metrics.computation.reductions import *
 from metrics.frontend.uvcdat import *
+
 from unidata import udunits
 import cdutil.times
 from numbers import Number
@@ -14,21 +15,31 @@ from pprint import pprint
 class AMWG(BasicDiagnosticGroup):
     """This class defines features unique to the AMWG Diagnostics."""
     def __init__(self):
-        pass
+        print 'in AMWG init'
     def list_variables( self, filetable1, filetable2=None, diagnostic_set_name="" ):
+        print 'in list vars top class amwg'
         if diagnostic_set_name!="":
+            print 'set name was != '
             dset = self.list_diagnostic_sets().get( diagnostic_set_name, None )
+            print 'dset:' ,dset
             if dset is None:
+                print 'dset was none'
                 return self._list_variables( filetable1, filetable2 )
             else:   # Note that dset is a class not an object.
+                print 'dset was not none'
                 return dset._list_variables( filetable1, filetable2 )
         else:
+            print 'else clause'
             return self._list_variables( filetable1, filetable2 )
     @staticmethod
     def _list_variables( filetable1, filetable2=None, diagnostic_set_name="" ):
+        print 'top level _list vars amwg'
+        print 'ft1:', filetable1
+        print 'set name:', diagnostic_set_name
         return BasicDiagnosticGroup._list_variables( filetable1, filetable2, diagnostic_set_name )
     @staticmethod
     def _all_variables( filetable1, filetable2, diagnostic_set_name ):
+        print 'top level _all_vars amwg'
         return BasicDiagnosticGroup._all_variables( filetable1, filetable2, diagnostic_set_name )
     def list_variables_with_levelaxis( self, filetable1, filetable2=None, diagnostic_set="" ):
         """like list_variables, but only returns variables which have a level axis
@@ -38,6 +49,7 @@ class AMWG(BasicDiagnosticGroup):
     def _list_variables_with_levelaxis( filetable1, filetable2=None, diagnostic_set_name="" ):
         """like _list_variables, but only returns variables which have a level axis
         """
+        print '_list_vars with levelaxis in amwg'
         if filetable1 is None: return []
         vars1 = filetable1.list_variables_with_levelaxis()
         if not isinstance( filetable2, basic_filetable ): return vars1
@@ -51,7 +63,12 @@ class AMWG(BasicDiagnosticGroup):
         plot_sets = psets
         for cl in psets:
             plot_sets = plot_sets + cl.__subclasses__()
-        return { aps.name:aps for aps in plot_sets if hasattr(aps,'name') }
+        print 'amwg plot sets'
+        print plot_sets
+        foo = { aps.name:aps for aps in plot_sets if hasattr(aps,'name') }
+        print 'amwg foo'
+        print foo
+        return foo
         #return { aps.name:(lambda ft1, ft2, var, seas: aps(ft1,ft2,var,seas,self))
         #         for aps in plot_sets if hasattr(aps,'name') }
         """ was:
@@ -79,9 +96,11 @@ class amwg_plot_spec(plot_spec):
     package = AMWG  # Note that this is a class not an object.
     @staticmethod
     def _list_variables( filetable1, filetable2=None ):
+        print 'plot_spec amwg list vars'
         return amwg_plot_spec.package._list_variables( filetable1, filetable2, "amwg_plot_spec" )
     @staticmethod
     def _all_variables( filetable1, filetable2=None ):
+        print 'plot_spec amwg all vars'
         return amwg_plot_spec.package._all_variables( filetable1, filetable2, "amwg_plot_spec" )
 
 # plot set classes we need which I haven't done yet:
@@ -116,7 +135,7 @@ class amwg_plot_set2(amwg_plot_spec):
     Both model and obs data is plotted, sometimes in the same plot.
     The data presented is averaged over everything but latitude.
     """
-    name = ' 2- Line Plots of Annual Implied Northward Transport'
+    name = '2 - Line Plots of Annual Implied Northward Transport'
     def __init__( self, filetable1, filetable2, varid, seasonid=None, aux=None ):
         """filetable1, filetable2 should be filetables for model and obs.
         varid is a string identifying the derived variable to be plotted, e.g. 'Ocean_Heat'.
@@ -276,7 +295,7 @@ class amwg_plot_set3(amwg_plot_spec):
     time-averaged with times restricted to the specified season, DJF, JJA, or ANN."""
     # N.B. In plot_data.py, the plotspec contained keys identifying reduced variables.
     # Here, the plotspec contains the variables themselves.
-    name = ' 3- Line Plots of  Zonal Means'
+    name = '3 - Line Plots of  Zonal Means'
     def __init__( self, filetable1, filetable2, varid, seasonid=None, aux=None ):
         """filetable1, filetable2 should be filetables for model and obs.
         varid is a string, e.g. 'TREFHT'.  Seasonid is a string, e.g. 'DJF'."""
@@ -339,13 +358,13 @@ class amwg_plot_set3(amwg_plot_spec):
 class amwg_plot_set4(amwg_plot_spec):
     """represents one plot from AMWG Diagnostics Plot Set 4.
     Each such plot is a set of three contour plots: one each for model output, observations, and
-    the difference between the two.  A plot's x-axis is latitude and its y-axis is the level,
+    the difference between the two.  A plot'sx-axis is latitude and its y-axis is the level,
     measured as pressure.  The model and obs plots should have contours at the same values of
     their variable.  The data presented is a climatological mean - i.e.,
     time-averaged with times restricted to the specified season, DJF, JJA, or ANN."""
     # N.B. In plot_data.py, the plotspec contained keys identifying reduced variables.
     # Here, the plotspec contains the variables themselves.
-    name = ' 4- Vertical Contour Plots Zonal Means'
+    name = '4 - Vertical Contour Plots Zonal Means'
     def __init__( self, filetable1, filetable2, varid, seasonid=None, aux=None ):
         """filetable1, filetable2 should be filetables for model and obs.
         varid is a string, e.g. 'TREFHT'.  Seasonid is a string, e.g. 'DJF'.
@@ -452,6 +471,7 @@ class amwg_plot_set5and6(amwg_plot_spec):
         """filetable1, filetable2 should be filetables for model and obs.
         varid is a string identifying the variable to be plotted, e.g. 'TREFHT'.
         seasonid is a string such as 'DJF'."""
+        print 'amwg 5 and 6 init called ************************************************************'
         plot_spec.__init__(self,seasonid)
         self.plottype = 'Isofill'
         self.season = cdutil.times.Seasons(self._seasonid)  # note that self._seasonid can differ froms seasonid
@@ -467,12 +487,14 @@ class amwg_plot_set5and6(amwg_plot_spec):
             self.plan_computation( filetable1, filetable2, varid, seasonid, aux )
     @staticmethod
     def _list_variables( filetable1, filetable2=None ):
+        print '_list_vars in 5and6 called'
         allvars = amwg_plot_set5and6._all_variables( filetable1, filetable2 )
         listvars = allvars.keys()
         listvars.sort()
         return listvars
     @staticmethod
     def _all_variables( filetable1, filetable2=None ):
+        print '_allvars in 5and6 called'
         allvars = amwg_plot_spec.package._all_variables( filetable1, filetable2, "amwg_plot_spec" )
         #allvars['Z3'] = basic_level_variable # temporary, the right thing is to find level-dep't vars
         for varname in amwg_plot_spec.package._list_variables_with_levelaxis(
@@ -620,7 +642,7 @@ class amwg_plot_set5(amwg_plot_set5and6):
     the difference between the two.  A plot's x-axis is longitude and its y-axis is the latitude;
     normally a world map will be overlaid.
     """
-    name = ' 5- Horizontal Contour Plots of Seasonal Means'
+    name = '5 - Horizontal Contour Plots of Seasonal Means'
 
 
 
@@ -631,5 +653,5 @@ class amwg_plot_set6(amwg_plot_set5and6):
     the difference between the two.  A plot's x-axis is longitude and its y-axis is the latitude;
     normally a world map will be overlaid.
     """
-    name = ' 6- Horizontal Vector Plots of Seasonal Means'
+    name = '6 - Horizontal Vector Plots of Seasonal Means'
 

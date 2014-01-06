@@ -1,5 +1,10 @@
 import argparse
-import packages
+
+### TODO: Fix compress options (in init or whatever)
+try:
+   import metrics.packages as packages
+except:
+   import packages
 
 #### NEED A REGIONS selection probably and maybe list of regions?
 
@@ -256,8 +261,9 @@ class Options():
             self._opts['obspath'].append(i[0])
 
       if(args.filter != None):
-         for i in args.filter:
-            self._opts['filter'].append(i[0])
+         self._opts['filter'] = args.filter[0]
+#         for i in args.filter:
+#            self._opts['filter'].append(i[0])
 
       self._opts['seasonally'] = args.seasonally
       self._opts['monthly'] = args.monthly

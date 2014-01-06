@@ -10,7 +10,6 @@
 import cdms2, math
 from metrics.fileio.findfiles import *
 from metrics.fileio.filetable import *
-from metrics.frontend.options import Options
 from metrics.computation.reductions import *
 from metrics.amwg.derivations.oaht import *
 from metrics.amwg.derivations.ncl_isms import *

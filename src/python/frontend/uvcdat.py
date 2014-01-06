@@ -3,17 +3,34 @@
 # Functions callable from the UV-CDAT GUI.
 
 import hashlib, os, pickle, sys, os
-from metrics import *
-from metrics.fileio.filetable import *
-from metrics.fileio.findfiles import *
-from metrics.computation.reductions import *
-# this should be able to just import a top level packages/ file, otherwise we have to import the same things in lots of places
-from metrics.amwg import *
-from metrics.amwg.derivations.vertical import *
-from metrics.amwg.plot_data import plotspec, derived_var
-from metrics.frontend.version import version
-from metrics.amwg.derivations import *
-from metrics.diagnostic_groups import *
+try:
+   from fileio.filetable import *
+   from fileio.findfiles import *
+   from computation.reductions import *
+   # this should be able to just import a top level packages/ file, otherwise we have to import the same things in lots of places
+   import packages
+   from packages.amwg import *
+   from packages.amwg.derivations.vertical import *
+   from packages.amwg.plot_data import plotspec, derived_var
+   from frontend.version import version
+   from frontend.options import Options
+   from packages.amwg.derivations import *
+   from packages.common.diagnostic_groups import *
+except:
+   from metrics import *
+   from metrics.fileio.filetable import *
+   from metrics.fileio.findfiles import *
+   from metrics.computation.reductions import *
+   # this should be able to just import a top level packages/ file, otherwise we have to import the same things in lots of places
+   import packages
+   from metrics.packages.amwg import *
+   from metrics.packages.amwg.derivations.vertical import *
+   from metrics.packages.amwg.plot_data import plotspec, derived_var
+   from metrics.frontend.version import version
+   from metrics.frontend.options import Options
+   from metrics.packages.amwg.derivations import *
+   from metrics.packages.common.diagnostic_groups import *
+
 from pprint import pprint
 import cProfile
 import json
@@ -21,6 +38,7 @@ import vcs
 vcsx=vcs.init()   # This belongs in one of the GUI files, e.g.diagnosticsDockWidget.py
                   # The GUI probably will have already called vcs.init().
                   # Then, here,  'from foo.bar import vcsx'
+opts=Options()
 # ---------------- code to compute plot in another process, not specific to UV-CDAT:
 
 from multiprocessing import Process, Semaphore, Pipe
@@ -508,6 +526,8 @@ class contour_diff_plot( plotspec ):
             zvars=[z1var,z2var], zfunc=aminusb_2ax, plottype='Isofill' )
 
 
+# TODO: This should not be inside uvcdat.py. It is general purpose. Probably needs
+# moved to packages/common or something similar
 class plot_spec(object):
     # ...I made this a new-style class so we can call __subclasses__ .
     package=BasicDiagnosticGroup  # Note that this is a class not an object.
@@ -555,8 +575,10 @@ class plot_spec(object):
         prof.dump_stats('results_stats')
         return returnme
     def _results(self):
+        opts = Options()
+        opts._opts['vars'] = self.reduced_variables.keys()
         for v in self.reduced_variables.keys():
-            value = self.reduced_variables[v].reduce()
+            value = self.reduced_variables[v].reduce(opts)
             self.variable_values[v] = value  # could be None
         postponed = []   # derived variables we won't do right away
         for v in self.derived_variables.keys():
