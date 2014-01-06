@@ -12,8 +12,14 @@ import dateutil.parser
 from datetime import datetime as datetime
 from unidata import udunits
 from cdutil import averager
-from metrics.amwg.derivations import press2alt
-from metrics.fileio.filetable import *
+try:
+   from computation import press2alt
+   from fileio.filetable import *
+except:
+   from metrics.computation import press2alt
+   from metrics.fileio.filetable import *
+
+#from packages.amwg.derivations import press2alt
 #from climo_test import cdutil_climatology
 
 seasonsyr=cdutil.times.Seasons('JFMAMJJASOND')
@@ -456,6 +462,22 @@ def reduce2lat_seasonal( mv, seasons=seasonsyr, vid=None ):
     avmv.units = mv.units
     return avmv
 
+def reduceAnnTrend(mv, vid=None):
+   # This does a annual climatology, then a spatial average of a variable. result is basically a list
+   if vid == None:
+      vid = 'reduced_'+mv.id
+
+   timeax = timeAxis(mv)
+   if timeax.getBounds()==None:
+      timeax._bounds_ = timeax.genGenericBounds()
+   print 'Calculating seasonal climatology...'
+   mvann = cdutil.times.YEAR(mv)
+   print 'Calculating land averages...'
+   mvtrend = cdutil.averager(mvann, axis='xy')
+   mvtrend.id = vid
+   if hasattr(mv, 'units'): mvtrend.units = mv.units # should be units/sq meter I assume
+   return mvtrend
+
 def reduce2latlon_seasonal( mv, seasons=seasonsyr, vid=None ):
     """as reduce2lat_seasonal, but both lat and lon axes are retained.
     """
@@ -498,33 +520,39 @@ def reduce2latlon_seasonal( mv, seasons=seasonsyr, vid=None ):
 def reduce_time_seasonal( mv, seasons=seasonsyr, vid=None ):
     """as reduce2lat_seasonal, but all non-time axes are retained.
     """
-    if vid==None:
-        #vid = 'reduced_'+mv.id
-        vid = mv.id
-    # Note that the averager function returns a variable with meaningless id.
-    # The climatology function returns the same id as mv, which we also don't want.
+   if vid==None:
+      #vid = 'reduced_'+mv.id
+      vid = mv.id
+   # Note that the averager function returns a variable with meaningless id.
+   # The climatology function returns the same id as mv, which we also don't want.
 
-    # The slicers in time.py require getBounds() to work.
-    # If it doesn't, we'll have to give it one.
-    # Setting the _bounds_ attribute will do it.
-    timeax = timeAxis(mv)
-    if timeax is None:
-        print "WARNING- no time axis in",mv.id
-        return mv
-    if len(timeax)<=1:
-        return mv
-    if timeax.getBounds()==None:
-        timeax._bounds_ = timeax.genGenericBounds()
-    mvseas = seasons.climatology(mv)
-    if mvseas is None:
-        print "WARNING- cannot compute climatology for",mv.id,seasons.seasons
-        print "...probably there is no data for times in the requested season."
-        return None
-    avmv = mvseas
-    avmv.id = vid
-    if hasattr(mv,'units'): avmv.units = mv.units
-    avmv = delete_singleton_axis( avmv, vid='time' )
-    avmv.units = mv.units
+   # The slicers in time.py require getBounds() to work.
+   # If it doesn't, we'll have to give it one.
+   # Setting the _bounds_ attribute will do it.
+   #TODO Just combine the two functions
+   if seasons == 'ANN':
+      avmv = reduce_time(mv, vid)
+   else:
+      timeax = timeAxis(mv)
+      if timeax is None:
+         print "WARNING- no time axis in",mv.id
+         return mv
+      if len(timeax)<=1:
+         return mv
+      if timeax.getBounds()==None:
+         timeax._bounds_ = timeax.genGenericBounds()
+      mvseas = seasons.climatology(mv)
+
+      if mvseas is None:
+         print "WARNING- cannot compute climatology for",mv.id,seasons.seasons
+         print "...probably there is no data for times in the requested season."
+         return None
+      avmv = mvseas
+      avmv.id = vid
+      if hasattr(mv,'units'): avmv.units = mv.units
+      avmv = delete_singleton_axis( avmv, vid='time' )
+      avmv.units = mv.units
+
     return avmv
 
 def select_lev( mv, slev ):
@@ -723,6 +751,30 @@ def aminusb0( mv1, mv2 ):
         if mv.long_name==mv1.long_name:  # They're different, shouldn't have the same long_name
             mv.long_name = ''
     return mv
+
+def evapfrac(mvdict):
+   """returns evaporative fraction """
+   lheat = mvdict['fctr']+mvdict['fcev']+mvdict['fgev']
+   sheat = mvdict['fsh']
+
+   sheat2 = sheat
+   if sheat.min() < 0.:
+      sheat2 = MV2.where(MV2.less(sheat, 0.), sheat.missing_value, sheat)
+
+   lheat2 = lheat
+   if lheat.min() < 0.:
+      lheat2 = MV2.where(MV2.less(lheat, 0.), lheat.missing_value, lheat)
+
+   denom = lheat2+sheat2
+   denom2 = MV2.where(MV2.less_equal(denom, 0.), denom_missing_value, denom)
+
+   var = lheat2 / denom2
+   var.id = 'evapfrac'
+   var.setattribute('long_name', 'evaporative fraction')
+   var.setattribute('name','evapfrac')
+   var.units=''
+   return var
+
 
 def adivapb(mv1, mv2):
     """returns a/(a+b) """
@@ -1155,6 +1207,8 @@ class reduced_variable(ftrow):
             print "ERROR.  No filetable specified for reduced_variable instance",variableid
         self._filetable = filetable
         self._file_attributes = {}
+# why did this line go away in master? need to look at logs
+#        self._reducedvar = None
 
     def extract_filefamilyname( self, filename ):
         """From a filename, extracts the first part of the filename as the possible
@@ -1313,6 +1367,8 @@ class reduced_variable(ftrow):
         if reduced_data is not None:
            reduced_data._vid = vid
         fp.close()
+        self._reducedvar = reduced_data
+        print 'sending back reduced data'
         return reduced_data
 
 

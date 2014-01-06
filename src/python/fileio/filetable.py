@@ -5,7 +5,10 @@
 # subject to change!
 
 import sys, os, cdms2
-from frontend.options import Options
+try:
+   from frontend.options import Options
+except:
+   from metrics.frontend.options import Options
 
 class drange:
    def __init__( self, low=None, high=None, units=None ):
@@ -100,6 +103,19 @@ class basic_filetable:
     which makes it a class.  Moreover, indices for the table are in this class.
     Different file types will require different methods,
     and auxiliary data."""
+    # Filelist can be a dirtree_datafile or a list. There is a lot of code that assumes both
+    # so for now, we have this icky hack.
+
+    def __init__( self, filelist, opts, ftid = ''):
+        try:
+            # is this a dirtree that was passed or a directory?
+            options = filelist.opts
+        except:
+            try:
+               options = options
+            except:
+               print 'Could not determine options array in basic_filetable'
+               quit()
 
     def __init__( self, filelist, options, ftid='', cache_path=None):
     # It might be nice to pass an Options class instead of a varlist so we could get things like verbose options
@@ -267,8 +283,13 @@ class NCAR_filefmt(basic_filefmt):
    def __init__(self,dfile, options):
       """dfile is an open file.  It must be an xml file produced by cdscan,
       combining NCAR History Tape format files."""
-      self.o = options
-      varlist = self.o._opts['vars']
+#      if type(options) == str:
+#         varlist = options
+#      else:
+      if True:
+         self.o = options
+         varlist = self.o._opts['vars']
+
       self._dfile = dfile
       if 'ALL' in varlist:
          self._all_interesting_names = self._dfile.variables.keys()
@@ -487,12 +508,12 @@ class CF_filefmt(basic_filefmt):
 
 if __name__ == '__main__':
    if len(sys.argv) == 1:
-      from findfiles import *
+      from metrics.findfiles import *
       datafiles = dirtree_datafiles(sys.argv[1])
       filetable = basic_filetable(datfiles, ['ALL'])
       print "filetable=", filetable.sort()
    if len(sys.argv) > 1:
-      from findfiles import *
+      from metrics.findfiles import *
       datafiles = dirtree_datafiles(sys.argv[1])
       filetable = basic_filetable(datfiles, sys.argv[2:])
       print "filetable=", filetable.sort()

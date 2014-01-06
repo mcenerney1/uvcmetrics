@@ -10,14 +10,14 @@
 import cdms2, math
 from metrics.fileio.findfiles import *
 from metrics.fileio.filetable import *
-from options import Options
+from metrics.frontend.options import Options
 from metrics.computation.reductions import *
 from metrics.amwg.derivations.oaht import *
 from metrics.amwg.derivations.ncl_isms import *
 from metrics.amwg.derivations.vertical import *
 from metrics.amwg.plot_data import derived_var, plotspec
+
 from pprint import pprint
-from metrics.frontend.options import *
 
 from cdutil.times import Seasons
 from pprint import pprint
