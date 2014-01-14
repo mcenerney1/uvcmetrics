@@ -1,7 +1,4 @@
-try:
-   import frontend.options
-except:
-   import metrics.frontend.options
+import metrics.frontend.options
 
 class TreeView():
    

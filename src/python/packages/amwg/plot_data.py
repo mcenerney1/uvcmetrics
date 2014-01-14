@@ -4,22 +4,13 @@
 # There's a whole lot left to do!
 
 import cdms2, math
-try:
-   from fileio.filetable import *
-   from fileio.findfiles import *
-   from computation.reductions import *
-   from computation.plotspec import *
-   from packages.amwg.derivations.oaht import *
-   from packages.amwg.derivations.ncl_isms import *
-   from packages.amwg.derivations.vertical import *
-except:
-   from metrics.fileio.filetable import *
-   from metrics.fileio.findfiles import *
-   from metrics.computation.reductions import *
-   from metrics.computation.plotspec import *
-   from metrics.packages.amwg.derivations.oaht import *
-   from metrics.packages.amwg.derivations.ncl_isms import *
-   from metrics.packages.amwg.derivations.vertical import *
+from metrics.fileio.filetable import *
+from metrics.fileio.findfiles import *
+from metrics.computation.reductions import *
+from metrics.computation.plotspec import *
+from metrics.packages.amwg.derivations.oaht import *
+from metrics.packages.amwg.derivations.ncl_isms import *
+from metrics.packages.amwg.derivations.vertical import *
 
 from pprint import pprint
 
@@ -495,7 +486,7 @@ def test_driver( path1, path2=None, filt2=None ):
             h.write("<plotdata>\n")
         varkeys = []
         for ps in psl:
-            print "jfp preparing data for",ps._id
+            print "amwg plot_data - jfp preparing data for",ps._id
             xrv = [ varvals[k] for k in ps.xvars ]
             x1rv = [ varvals[k] for k in ps.x1vars ]
             x2rv = [ varvals[k] for k in ps.x2vars ]

@@ -6,29 +6,17 @@
 # >>>> How does the class design work with this? Improve as needed.
 
 import hashlib, os, pickle, sys, os
-try:
-   from fileio.filetable import *
-   from fileio.findfiles import *
-   from computation.reductions import *
-   from amwg import *
-   from amwg.derivations.vertical import *
-   from amwg.plot_data import plotspec, derived_var
-   from frontend.version import version
-   from amwg.derivations import *
-   from diagnostic_groups import *
-   from frontend.uvcdat import *
-except:
-   from metrics import *
-   from metrics.fileio.filetable import *
-   from metrics.fileio.findfiles import *
-   from metrics.computation.reductions import *
-   from metrics.amwg import *
-   from metrics.amwg.derivations.vertical import *
-   from metrics.amwg.plot_data import plotspec, derived_var
-   from metrics.frontend.version import version
-   from metrics.amwg.derivations import *
-   from metrics.diagnostic_groups import *
-   from metrics.frontend.uvcdat import *
+from metrics import *
+from metrics.fileio.filetable import *
+from metrics.fileio.findfiles import *
+from metrics.computation.reductions import *
+from metrics.amwg import *
+from metrics.amwg.derivations.vertical import *
+from metrics.amwg.plot_data import plotspec, derived_var
+from metrics.frontend.version import version
+from metrics.amwg.derivations import *
+from metrics.diagnostic_groups import *
+from metrics.frontend.uvcdat import *
 
 from pprint import pprint
 import cProfile

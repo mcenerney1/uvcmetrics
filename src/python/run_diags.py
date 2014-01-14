@@ -14,22 +14,15 @@
 
 import cdms2, math, cdutil, genutil, json, os, vcs
 
-try:
-   from frontend.options import Options
-   from computation.reductions import *
-   from fileio.filetable import *
-   from fileio.findfiles import *
-   from frontend.treeview import TreeView
-   from packages.common.plot_types import *
-   import packages
-except:
-   from metrics.frontend.options import Options
-   from metrics.computation.reductions import *
-   from metrics.fileio.filetable import *
-   from metrics.fileio.findfiles import *
-   from metrics.frontend.treeview import TreeView
-   from metrics.packages.common.plot_types import *
-   import metrics.packages
+from metrics.frontend.options import Options
+from metrics.computation.reductions import *
+from metrics.fileio.filetable import *
+from metrics.fileio.findfiles import *
+from metrics.frontend.treeview import TreeView
+from metrics.packages.common.plot_types import *
+import metrics.packages.common.diagnostic_groups
+import metrics.frontend.uvcdat
+import metrics.packages
 
 
 if __name__ == '__main__':
@@ -89,7 +82,6 @@ if __name__ == '__main__':
 
    print 'Computing reduced variables'
    print vlist
-   quit()
 
    print rvar_list.keys()
    for rv in rvar_list.keys():

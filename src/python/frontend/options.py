@@ -1,12 +1,11 @@
 import argparse
 
 ### TODO: Fix compress options (in init or whatever)
-try:
-   import metrics.packages as packages
-except:
-   import packages
-
 #### NEED A REGIONS selection probably and maybe list of regions?
+
+import metrics.packages as packages
+
+
 
 class Options():
    all_months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
@@ -66,25 +65,73 @@ class Options():
       # most of this code moved to TreeView. Do we still need this functionality?
       return
 
-   def listSets(self, package, key=None):
-      if key != None: # For a specific field in the sets list, ie, key=name for example returns names
-         kys = self.all_sets[package].keys()
-         # assume "setXX" where XX is a number and we want "10" after "9" not "1"
-         kys.sort(key=lambda x:int(filter(str.isdigit, x)))
-         klist = []
-         for k in kys:
-            klist.append(self.all_sets[package][k][key])
-         return klist
-      else:
-         l = list(self.all_sets[package].keys())
-         l.sort(key=lambda x:int(filter(str.isdigit, x)))
-         return l
+   def listSets(self, packageid, key=None):
+      im = ".".join(['metrics', 'packages', packageid, packageid])
+      print __name__
+      print 'lmwg'
+      if packageid == 'lmwg':
+         pclass = getattr(__import__(im, fromlist=['LMWG']), 'LMWG')()
+      elif packageid == 'amwg':
+         pclass = getattr(__import__(im, fromlist=['AMWG']), 'AMWG')()
+      diags = pclass.list_diagnostic_sets()
+      keys = diags.keys()
+      keys.sort()
+      sets = {}
+      for k in keys:
+         fields = k.split()
+         sets[fields[0]] = ' '.join(fields[2:])
+      return sets
+
+##      if key != None: # For a specific field in the sets list, ie, key=name for example returns names
+##         kys = self.all_sets[package].keys()
+##         # assume "setXX" where XX is a number and we want "10" after "9" not "1"
+##         kys.sort(key=lambda x:int(filter(str.isdigit, x)))
+##         klist = []
+##         for k in kys:
+##            klist.append(self.all_sets[package][k][key])
+##         return klist
+##      else:
+##         l = list(self.all_sets[package].keys())
+##         l.sort(key=lambda x:int(filter(str.isdigit, x)))
+##         return l
 #         return list(self.all_sets[package].keys()).sort(key=lambda x:int(x[3:]))
 #         return self.all_sets[package].keys()
       #return self.all_sets[realm][package]
 
    def listVariables(self, package, setname):
-      # needs to ask the package for a list; could include derived vars, etc. complicated.
+      import metrics.fileio.filetable as ft
+      import metrics.fileio.findfiles as fi
+      dtree = fi.dirtree_datafiles(self)
+      filetable = ft.basic_filetable(dtree, self)
+
+      # this needs a filetable probably, or we just define the maximum list of variables somewhere
+      im = ".".join(['metrics', 'packages', package[0], package[0]])
+      if package[0] == 'lmwg':
+         pclass = getattr(__import__(im, fromlist=['LMWG']), 'LMWG')()
+      elif package[0]=='amwg':
+         pclass = getattr(__import__(im, fromlist=['AMWG']), 'AMWG')()
+
+      # assume we have a path provided
+
+      slist = pclass.list_diagnostic_sets()
+      keys = slist.keys()
+      keys.sort()
+      pset_name = None
+      for k in keys:
+         fields = k.split()
+         if setname[0] == fields[0]:
+            pset = slist[k](filetable, None, None, None, aux=None, vlist=1)
+            pset_name = k
+
+      if pset_name == None:
+         print 'DIDNT FIND THE SET'
+         quit()
+
+      
+      varlist = pset.varlist
+      print 'VARLIST'
+      print varlist
+         
       return
 
    def listRealms(self):
@@ -151,7 +198,7 @@ class Options():
          help="The sets within a diagnostic package to run. Multiple sets can be specified. If multiple packages were specified, the sets specified will be searched for in each package") 
       parser.add_argument('--vars', '--var', '-v', nargs='+', 
          help="Specify variables of interest to process. The default is all variables which can also be specified with the keyword ALL") 
-      parser.add_argument('--list', '-l', nargs=1, choices=['sets', 'variables', 'packages', 'realms', 'seasons', 'plottypes', 'allsets', 'allvariables'], 
+      parser.add_argument('--list', '-l', nargs=1, choices=['sets', 'vars', 'variables', 'packages', 'realms', 'seasons', 'plottypes', 'allsets', 'allvariables'], 
          help="Determine which realms, packages, sets, and variables are available")
          # maybe eventually add compression level too....
       parser.add_argument('--compress', nargs=1, choices=['no', 'yes'],
@@ -200,9 +247,11 @@ class Options():
       if(args.list != None):
          if args.list[0] == 'realms':
             print "Available realms: ", self.realm_types
+            quit()
 
          if args.list[0] == 'seasons':
             print "Available seasons: ", self.all_seasons
+            quit()
 
          if args.list[0] == 'packages':
             if args.realm == None:
@@ -216,7 +265,9 @@ class Options():
 #            for m in args.realm:
 #               for n in self.all_packages[m]:
 #                  print n
+            quit()
 
+         
          if args.list[0] == 'sets':
             if args.realm == None:
                print "Please specify realm type before requesting available diags sets"
@@ -226,7 +277,10 @@ class Options():
                quit()
             for p in args.packages:
                print 'Avaialble sets for package ', p, ':'
-               print self.listSets(p)
+               sets = self.listSets(p)
+               for k in sets.keys():
+                  print 'Set',k, ' - ', sets[k]
+            quit()
                
          if args.list[0] == 'allsets':
             if args.realm == None:
@@ -238,14 +292,18 @@ class Options():
                   self.listAllSets(realm=args.realm[0], package=args.packages[0])
             quit()
 
-         if args.list[0] == 'variables':
-            print "Listing variables not yet supported"
+         if args.list[0] == 'variables' or args.list[0] == 'vars':
+            if args.path != None:
+               for i in args.path:
+                  self._opts['path'].append(i[0])
+            else:
+               print 'Must provide a dataset when requesting a variable listing'
+               quit()
+            self.listVariables(args.packages, args.sets)
             quit()
-            #print "Not sure how to list variables yet; requires knowledge of derived variables from individual packages"
 
-         # Stop processing arguments if list was requested
-         quit()
-
+      print 'passed by list options, badness'
+      quit()
       # TODO: If realm/package/set are not specified and --list is not passed, this would generally be an error
 
 

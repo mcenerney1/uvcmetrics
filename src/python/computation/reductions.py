@@ -12,12 +12,8 @@ import dateutil.parser
 from datetime import datetime as datetime
 from unidata import udunits
 from cdutil import averager
-try:
-   from computation import press2alt
-   from fileio.filetable import *
-except:
-   from metrics.computation import press2alt
-   from metrics.fileio.filetable import *
+from metrics.computation import press2alt
+from metrics.fileio.filetable import *
 
 #from packages.amwg.derivations import press2alt
 #from climo_test import cdutil_climatology
@@ -718,6 +714,21 @@ def sumvarlist(mlist):
    for m in mlist:
       mv = mv + m
    return mv
+
+def addlistAndReduce(mvlist):
+   print mvlist
+
+def aminusbAndReduce(mvlist):
+   print mvlist
+
+def adivbAndReduce(mvlist):
+   print mvlist
+
+def pminuseAndReduce(mvlist):
+   print mvlist
+
+def evapfracAndReduce(mvlist):
+   print mvlist
 
 
 def aplusb0(mv1, mv2 ):

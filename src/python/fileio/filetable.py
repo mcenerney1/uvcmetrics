@@ -5,10 +5,7 @@
 # subject to change!
 
 import sys, os, cdms2
-try:
-   from frontend.options import Options
-except:
-   from metrics.frontend.options import Options
+from metrics.frontend.options import Options
 
 class drange:
    def __init__( self, low=None, high=None, units=None ):
@@ -277,6 +274,8 @@ class Unknown_filefmt(basic_filefmt):
     """Any unsupported file type gets this one."""
 
 class NCAR_filefmt(basic_filefmt):
+   # This code wasn't designed to take an Options, so this is pretty hackish. High on the list
+   # of things to rework some day
    o = Options()
    """NCAR History Tape format, used by CAM,CCSM,CESM.  This class works off a derived
    xml file produced with cdscan."""

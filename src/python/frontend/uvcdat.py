@@ -3,33 +3,21 @@
 # Functions callable from the UV-CDAT GUI.
 
 import hashlib, os, pickle, sys, os
-try:
-   from fileio.filetable import *
-   from fileio.findfiles import *
-   from computation.reductions import *
-   # this should be able to just import a top level packages/ file, otherwise we have to import the same things in lots of places
-   import packages
-   from packages.amwg import *
-   from packages.amwg.derivations.vertical import *
-   from packages.amwg.plot_data import plotspec, derived_var
-   from frontend.version import version
-   from frontend.options import Options
-   from packages.amwg.derivations import *
-   from packages.common.diagnostic_groups import *
-except:
-   from metrics import *
-   from metrics.fileio.filetable import *
-   from metrics.fileio.findfiles import *
-   from metrics.computation.reductions import *
-   # this should be able to just import a top level packages/ file, otherwise we have to import the same things in lots of places
-   import packages
-   from metrics.packages.amwg import *
-   from metrics.packages.amwg.derivations.vertical import *
-   from metrics.packages.amwg.plot_data import plotspec, derived_var
-   from metrics.frontend.version import version
-   from metrics.frontend.options import Options
-   from metrics.packages.amwg.derivations import *
-   from metrics.packages.common.diagnostic_groups import *
+#from metrics import *
+print 'HERE'
+from metrics.fileio.filetable import *
+print 'DONE'
+from metrics.fileio.findfiles import *
+from metrics.computation.reductions import *
+# this should be able to just import a top level packages/ file, otherwise we have to import the same things in lots of places
+from metrics.packages.amwg import *
+from metrics.packages.amwg.derivations.vertical import *
+from metrics.packages.amwg.plot_data import plotspec, derived_var
+from metrics.frontend.version import version
+from metrics.frontend.options import Options
+from metrics.packages.amwg.derivations import *
+from metrics.packages.common.diagnostic_groups import *
+import metrics.packages
 
 from pprint import pprint
 import cProfile
@@ -594,7 +582,7 @@ class plot_spec(object):
             self.variable_values[v] = value  # could be None
         varvals = self.variable_values
         for p,ps in self.single_plotspecs.iteritems():
-            print "jfp preparing data for",ps._id
+            print "frontend - jfp preparing data for",ps._id
             xrv = [ varvals[k] for k in ps.xvars ]
             x1rv = [ varvals[k] for k in ps.x1vars ]
             x2rv = [ varvals[k] for k in ps.x2vars ]
