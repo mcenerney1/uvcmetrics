@@ -5,6 +5,7 @@
 
 from metrics.packages.common.diagnostic_groups import *
 from metrics.computation.reductions import *
+from metrics.computation.plotspec import *
 from metrics.frontend.uvcdat import *
 
 from unidata import udunits
@@ -479,9 +480,11 @@ class amwg_plot_set5and6(amwg_plot_spec):
         self.varid = varid
         self._var_baseid = '_'.join([varid,'set6'])   # e.g. TREFHT_set6
         self.plot1_id = filetable1._id+'_'+varid+'_'+seasonid
-        self.plot2_id = filetable2._id+'_'+varid+'_'+seasonid
-        self.plot3_id = filetable1._id+' - '+filetable2._id+'_'+varid+'_'+seasonid
-        self.plotall_id = filetable1._id+'_'+filetable2._id+'_'+varid+'_'+seasonid
+        self.plotall_id = self.plot1_id
+        if filetable2 != None:
+           self.plot2_id = filetable2._id+'_'+varid+'_'+seasonid
+           self.plot3_id = filetable1._id+' - '+filetable2._id+'_'+varid+'_'+seasonid
+           self.plotall_id = filetable1._id+'_'+filetable2._id+'_'+varid+'_'+seasonid
 
         if not self.computation_planned:
             self.plan_computation( filetable1, filetable2, varid, seasonid, aux )
@@ -507,35 +510,55 @@ class amwg_plot_set5and6(amwg_plot_spec):
         else:
             return self.plan_computation_normal_countours( filetable1, filetable2, varid, seasonid, aux )
     def plan_computation_normal_countours( self, filetable1, filetable2, varid, seasonid, aux=None ):
-        """Set up for a lat-lon contour plot, as in plot set 5.  Data is averaged over all other
-        axes."""
-        self.reduced_variables = {
-            varid+'_1': reduced_variable(
-                variableid=varid, filetable=filetable1, reduced_var_id=varid+'_1', season=self.season,
-                reduction_function=(lambda x,vid: reduce2latlon_seasonal( x, self.season, vid ) ) ),
-            varid+'_2': reduced_variable(
-                variableid=varid, filetable=filetable2, reduced_var_id=varid+'_2', season=self.season,
-                reduction_function=(lambda x,vid: reduce2latlon_seasonal( x, self.season, vid ) ) )
-            }
-        self.derived_variables = {}
-        self.single_plotspecs = {
-            self.plot1_id: plotspec(
-                vid = varid+'_1',
-                zvars = [varid+'_1'],  zfunc = (lambda z: z),
-                plottype = self.plottype ),
+      """Set up for a lat-lon contour plot, as in plot set 5.  Data is averaged over all other
+      axes."""
+      red_vars1 = {}
+      red_vars2 = {}
+
+      red_vars1 = {
+         varid+'_1': reduced_variable(
+            variableid=varid, filetable=filetable1, reduced_var_id=varid+'_1',
+			reduction_function=(lambda x,vid: reduce2latlon_seasonal( x, self.season, vid ) ) ) 
+      }
+      if filetable2 != None:
+		red_vars2 = {
+			varid+'_2': reduced_variable(
+				variableid=varid, filetable=filetable2, reduced_var_id=varid+'_2',
+				reduction_function=(lambda x,vid: reduce2latlon_seasonal( x, self.season, vid ) ) )
+      }
+      self.reduced_variables=dict(red_vars1.items() + red_vars2.items())
+
+      self.derived_variables = {}
+      pspec1 = {}
+      pspec2 = {}
+
+      pspec1 = {
+         self.plot1_id: plotspec(
+            vid = varid+'_1',
+            zvars = [varid+'_1'], zfunc = (lambda z: z),
+            plottype = self.plottype)
+      }
+      self.composite_plotspecs = {}
+      self.composite_plotspecs[self.plotall_id] = [self.plot1_id]
+      if(filetable2 != None):
+         pspec2 = {
             self.plot2_id: plotspec(
-                vid = varid+'_2',
-                zvars = [varid+'_2'],  zfunc = (lambda z: z),
-                plottype = self.plottype ),
+               vid = varid+'_2',
+               zvars = [varid+'_2'], zfunc = (lambda z: z),
+               plottype = self.plottype),
             self.plot3_id: plotspec(
-                vid = varid+' diff',
-                zvars = [varid+'_1',varid+'_2'],  zfunc = aminusb_2ax,
-                plottype = self.plottype )
-            }
-        self.composite_plotspecs = {
-            self.plotall_id: [ self.plot1_id, self.plot2_id, self.plot3_id ]            
-            }
-        self.computation_planned = True
+               vid = varid+' diff',
+               zvars = [varid+'_1', varid+'_2'], zfunc=aminus_2ax,
+               plottype = self.plottype)
+         }
+         self.composite_plotspecs[self.plotall_id].append(self.plot2_id)
+         self.composite_plotspecs[self.plotall_id].append(self.plot3_id)
+
+      self.single_plotspecs = dict(pspec1.items() + pspec2.items())
+
+      self.computation_planned = True
+
+
     def plan_computation_level_surface( self, filetable1, filetable2, varid, seasonid, aux ):
         """Set up for a lat-lon contour plot, averaged in other directions - except that if the
         variable to be plotted depend on level, it is not averaged over level.  Instead, the value
@@ -543,6 +566,7 @@ class amwg_plot_set5and6(amwg_plot_spec):
         # In calling reduce_time_seasonal, I am assuming that no variable has axes other than
         # (time, lev,lat,lon).
         # If there were another axis, then we'd need a new function which reduces it as well.
+        print 'COMPUTATION_LEVEL_SURFACE -- UNCHANGED CODE. BAD'
         if not isinstance(aux,Number): return None
         pselect = udunits(aux,'mbar')
 

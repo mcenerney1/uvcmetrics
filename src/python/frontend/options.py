@@ -3,6 +3,7 @@ import argparse
 ### TODO: Fix compress options (in init or whatever)
 #### NEED A REGIONS selection probably and maybe list of regions?
 
+### There is still more to do in here, but I want to get this commited to master sooner rather than later.
 import metrics.packages as packages
 
 
@@ -56,6 +57,7 @@ class Options():
       return
 
    # These two functions pretty much require some sort of iterable data structure for sets/vars
+   # but that seems challenging to get from the structure in packages. 
    def listAllVariables(self, realm, key=None):
       return
       # List all vars given a realm. This might be complicated to implement

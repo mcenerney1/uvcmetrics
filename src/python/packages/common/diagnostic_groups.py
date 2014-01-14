@@ -1,29 +1,23 @@
 #!/usr/local/uvcdat/1.3.1/bin/python
 
+#from metrics.frontend.options import Options
+from metrics.fileio.filetable import basic_filetable
+
 # Features common to standard diagnostics from all groups, e.g. AMWG, LMWG.
 
-try:
-   from fileio.filetable import basic_filetable
-   from frontend.options import *
-except:
-   from metrics.fileio.filetable import basic_filetable
-   from metrics.frontend.options import *
-
+# this information is in too many places....
 def diagnostics_menu():
-    try:
-       from packages.amwg.amwg import AMWG
-       from packages.lmwg.lmwg import LMWG
-    except:
-       from metrics.packages.amwg.amwg import AMWG
-       from metrics.packages.lmwg.lmwg import LMWG
+    from metrics.packages.amwg.amwg import AMWG
+    from metrics.packages.lmwg.lmwg import LMWG
     return { "AMWG":AMWG, "LMWG":LMWG }
 
-class BasicDiagnosticGroup(Options):
+class BasicDiagnosticGroup():
     # This class will probably not get instantiated.
     # AMWG, LMWG, etc. should inherit from this.
     def __repr__( self ):
         return self.__class__.__name__+' object'
     def list_variables( self, filetable1, filetable2=None, diagnostic_set="" ):
+        print 'list_vars basic, returning empty array'
         """returns a sorted list of variable ids (strings) found in both filetables provided.
         This method _may_ also return names of variables which can be derived from the variables
         in the filtables.
@@ -44,31 +38,26 @@ class BasicDiagnosticGroup(Options):
                 return dset._all_variables( filetable1, filetable2 )
         else:
             varlist = self._list_variables( filetable1, filetable2 )
-        try:
-           from frontend.uvcdat import basic_plot_variable
-        except:
-           from metrics.frontend.uvcdat import basic_plot_variable
+        from metrics.frontend.uvcdat import basic_plot_variable
         return { vn: basic_plot_variable for vn in varlist }
     @staticmethod
     def _all_variables( filetable1, filetable2=None, diagnostic_set_name="" ):
         varlist = BasicDiagnosticGroup._list_variables( filetable1, filetable2, diagnostic_set_name )
-        try:
-           from frontend.uvcdat import basic_plot_variable
-        except:
-           from metrics.frontend.uvcdat import basic_plot_variable
+        from metrics.frontend.uvcdat import basic_plot_variable
         return { vn: basic_plot_variable for vn in varlist }
     @staticmethod
     def _list_variables( filetable1, filetable2=None, diagnostic_set_name="" ):
         """a generic implementation of the list_variables method, should be a good
         starting point for developing something for a particular diagnostic group"""
+        print 'generic list_vars'
         if filetable1 is None: return []
         vars1 = filetable1.list_variables()
         print vars1
         if not isinstance( filetable2, basic_filetable ): return vars1
         if filetable2.nrows()==0: return vars1
         vars2 = filetable2.list_variables()
-        varset = set(vars1).union(set(vars2))
-#        varset = set(vars1).intersection(set(vars2))
+#        varset = set(vars1).union(set(vars2))
+        varset = set(vars1).intersection(set(vars2))
         vars = list(varset)
         vars.sort()
         return vars
