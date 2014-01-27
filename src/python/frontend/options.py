@@ -69,8 +69,6 @@ class Options():
 
    def listSets(self, packageid, key=None):
       im = ".".join(['metrics', 'packages', packageid, packageid])
-      print __name__
-      print 'lmwg'
       if packageid == 'lmwg':
          pclass = getattr(__import__(im, fromlist=['LMWG']), 'LMWG')()
       elif packageid == 'amwg':
@@ -110,8 +108,10 @@ class Options():
       im = ".".join(['metrics', 'packages', package[0], package[0]])
       if package[0] == 'lmwg':
          pclass = getattr(__import__(im, fromlist=['LMWG']), 'LMWG')()
+         vlist=1
       elif package[0]=='amwg':
          pclass = getattr(__import__(im, fromlist=['AMWG']), 'AMWG')()
+         vlist=None
 
       # assume we have a path provided
 
@@ -122,17 +122,20 @@ class Options():
       for k in keys:
          fields = k.split()
          if setname[0] == fields[0]:
-            pset = slist[k](filetable, None, None, None, aux=None, vlist=1)
-            pset_name = k
+            if vlist ==None:
+               vl = slist[k]._list_variables(filetable)
+               print 'list_vars:**************************'
+               print vl
+            else:
+               pset = slist[k](filetable, None, None, None, aux=None, vlist=1)
+               pset_name = k
 
-      if pset_name == None:
-         print 'DIDNT FIND THE SET'
-         quit()
-
-      
-      varlist = pset.varlist
-      print 'VARLIST'
-      print varlist
+               if pset_name == None:
+                  print 'DIDNT FIND THE SET'
+                  quit()
+               varlist = pset.varlist
+               print 'VARLIST'
+               print varlist
          
       return
 
@@ -157,7 +160,6 @@ class Options():
          if(self._opts['list'] == None):
             print 'One or more path arguements is required'
             quit()
-            
       if(self._opts['plots'] == True):
          if(self._opts['realm'] == None):
             print 'Please specify a realm type if you want to generate plots'
@@ -168,19 +170,111 @@ class Options():
          if(self._opts['sets'] == None):
             print 'Please specify set names if you want to generate plots'
             quit()
-         # These could probably be assumed instead? 
-         if(self._opts['realm'] != None):
-            if(self._opts['packages'] == None):
-               print 'Please specify a package name'
-               quit()
-            if(self._opts['sets'] == None):
-               print 'Please specify a set name'
-               quit()
-         if(self._opts['packages'] != None):
-            if(self._opts['sets'] == None):
-               print 'Please specify a set name'
-               quit()
+         if(self._opts['path'] == None):
+            print 'Please specify a path to the dataset if you want to generate plots'
+            quit()
 
+   def plotMultiple(self):
+      import metrics.fileio.filetable as ft
+      import metrics.fileio.findfiles as fi
+         
+      dtree1 = fi.dirtree_datafiles(self, pathid=0)
+      filetable1 = ft.basic_filetable(dtree1, self)
+      if(len(self._opts['path']) == 2):
+         dtree2 = fi.dirtree_datafiles(self, pathid=1)
+         filetable2 = ft.basic_filetable(dtree2, self)
+      elif(self._opts['obspath']) != []:
+         dtree2 = fi.dirtree_datafiles(self, obs=1)
+         filetable2 = ft.basic_filetable(dtree2, self)
+      else:
+         filetable2 = None
+         print 'No second dataset for comparison'
+         
+      package=self._opts['packages']
+
+      # this needs a filetable probably, or we just define the maximum list of variables somewhere
+      im = ".".join(['metrics', 'packages', package[0], package[0]])
+      if package[0] == 'lmwg':
+         pclass = getattr(__import__(im, fromlist=['LMWG']), 'LMWG')()
+      elif package[0]=='amwg':
+         pclass = getattr(__import__(im, fromlist=['AMWG']), 'AMWG')()
+
+      sets = self._opts['sets']
+      varids = self._opts['vars']
+      seasons = self._opts['times']
+      slist = pclass.list_diagnostic_sets()
+      skeys = slist.keys()
+      print 'PATH:'
+      print self._opts['path']
+      print 'sets: ', sets
+      skeys.sort()
+      import vcs
+      v = vcs.init()
+      for k in skeys:
+         fields = k.split()
+         print 'fields: ', fields
+         for snames in sets:
+            if snames == fields[0]:
+               for va in varids:
+                  for s in seasons:
+                     print 'Creating plot for set: ', k, 'varid: ', va,' season: ', s
+                     plot = slist[k](filetable1, filetable2, va, s)
+                     res = plot.compute()
+                     v.plot(res[0].vars, res[0].presentation, bg=1)
+                     print 'length:'
+                     print len(self._opts['dsnames'])
+                     if(len(self._opts['dsnames']) != 0):
+                        fname = self._opts['dsnames'][0]+'-set'+fields[0]+s+va+'.png'
+                     else:
+                        fname = 'output-set'+fields[0]+s+va+'.png'
+                     print 'fname: ', fname
+                     v.png(fname)
+
+
+   def plotSingle(self):
+      import metrics.fileio.filetable as ft
+      import metrics.fileio.findfiles as fi
+      dtree1 = fi.dirtree_datafiles(self, pathid=0)
+      filetable1 = ft.basic_filetable(dtree1, self)
+      if(len(self._opts['path']) == 2):
+         dtree2 = fi.dirtree_datafiles(self, pathid=1)
+         filetable2 = ft.basic_filetable(dtree2, self)
+      elif(self._opts['obspath']) != []:
+         dtree2 = fi.dirtree_datafiles(self, obs=1)
+         filetable2 = ft.basic_filetable(dtree2, self)
+      else:
+         filetable2 = None
+         print 'No second dataset for comparison'
+         
+      package=self._opts['packages']
+
+      # this needs a filetable probably, or we just define the maximum list of variables somewhere
+      im = ".".join(['metrics', 'packages', package[0], package[0]])
+      if package[0] == 'lmwg':
+         pclass = getattr(__import__(im, fromlist=['LMWG']), 'LMWG')()
+      elif package[0]=='amwg':
+         pclass = getattr(__import__(im, fromlist=['AMWG']), 'AMWG')()
+
+      setname = self._opts['sets'][0]
+      varid = self._opts['vars'][0]
+      seasonid = self._opts['times'][0]
+      print 'CALLING LIST SETS'
+      slist = pclass.list_diagnostic_sets()
+      print 'DONE CALLIGN LIST SETS'
+      keys = slist.keys()
+      keys.sort()
+      import vcs
+      v = vcs.init()
+      for k in keys:
+         fields = k.split()
+         if setname[0] == fields[0]:
+            print 'calling init for ', k, 'varid: ', varid, 'seasonid: ', seasonid
+            plot = slist[k](filetable1, filetable2, varid, seasonid)
+            res = plot.compute()
+            v.plot(res[0].vars, res[0].presentation, bg=1)
+            v.png('output.png')
+            
+      
    def processCmdLine(self):
       parser = argparse.ArgumentParser(
          description='UV-CDAT Climate Modeling Diagnostics', 
@@ -280,7 +374,8 @@ class Options():
             for p in args.packages:
                print 'Avaialble sets for package ', p, ':'
                sets = self.listSets(p)
-               for k in sets.keys():
+               keys = sets.keys()
+               for k in keys:
                   print 'Set',k, ' - ', sets[k]
             quit()
                
@@ -304,10 +399,7 @@ class Options():
             self.listVariables(args.packages, args.sets)
             quit()
 
-      print 'passed by list options, badness'
-      quit()
       # TODO: If realm/package/set are not specified and --list is not passed, this would generally be an error
-
 
       if(args.path != None):
          for i in args.path:
@@ -404,13 +496,34 @@ class Options():
       # Note: If multiple packages have the same set names, then they are all added to the list.
       # This might be bad since there is no differentiation of lwmg['id==set'] and lmwg2['id==set']
       if(args.sets != None and self._opts['packages'] != None):
-         slist = []
-         for p in self._opts['packages']:
+         # unfortuantely, we have to go through all of this....
+         # there should be a non-init of the class method to list sets/packages/etc,
+         # ie a dictionary perhaps?
+         sets = []
+         import metrics.fileio.filetable as ft
+         import metrics.fileio.findfiles as fi
+         dtree = fi.dirtree_datafiles(self)
+         filetable = ft.basic_filetable(dtree, self)
+         package = self._opts['packages']
+
+         # this needs a filetable probably, or we just define the maximum list of variables somewhere
+         im = ".".join(['metrics', 'packages', package[0], package[0]])
+         if package[0] == 'lmwg':
+            pclass = getattr(__import__(im, fromlist=['LMWG']), 'LMWG')()
+         elif package[0]=='amwg':
+            pclass = getattr(__import__(im, fromlist=['AMWG']), 'AMWG')()
+
+         # there doesn't appear to be a way to change filetables after a class has been init'ed.
+         # is init expensive? not too bad currently, but that could be added perhaps.
+         slist = pclass.list_diagnostic_sets()
+         keys = slist.keys()
+         keys.sort()
+         for k in keys:
+            fields = k.split()
             for user in args.sets:
-               for s in self.all_sets[p]:
-                  if user == s:
-                     slist.append(user)
-         self._opts['sets'] = slist
+               if user == fields[0]:
+                  sets.append(user)
+         self._opts['sets'] = sets
 
       # There is no way to check this yet since we have some derived variables in a lot of sets
       if args.vars != None:

@@ -27,8 +27,16 @@ import metrics.packages
 
 if __name__ == '__main__':
    o = Options()
+   print 'processing'
    o.processCmdLine()
+   print 'verifying'
    o.verifyOptions()
+   print 'ploting'
+   if(o._opts['plots']) == True:
+      o.plotMultiple()
+#      o.plotSingle()
+      quit()
+
    print o._opts['times']
 
    # At this point, we have our options specified. Need to generate some climatologies and such
