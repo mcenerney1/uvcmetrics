@@ -514,8 +514,8 @@ def reduce2latlon_seasonal( mv, seasons=seasonsyr, vid=None ):
     return avmv
 
 def reduce_time_seasonal( mv, seasons=seasonsyr, vid=None ):
-    """as reduce2lat_seasonal, but all non-time axes are retained.
-    """
+   """as reduce2lat_seasonal, but all non-time axes are retained.
+   """
    if vid==None:
       #vid = 'reduced_'+mv.id
       vid = mv.id
@@ -549,7 +549,7 @@ def reduce_time_seasonal( mv, seasons=seasonsyr, vid=None ):
       avmv = delete_singleton_axis( avmv, vid='time' )
       avmv.units = mv.units
 
-    return avmv
+   return avmv
 
 def select_lev( mv, slev ):
     """Input is a level-dependent variable mv and a level slev to select.
@@ -1258,8 +1258,6 @@ class reduced_variable(ftrow):
         else:
             familyname = mo.group(1)
             return familyname        
-        else:
-            return filename
 
     def reduce( self, options, vid=None ):
         """Finds and opens the files containing data required for the variable,
