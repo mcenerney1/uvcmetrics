@@ -17,6 +17,7 @@ from metrics.frontend.version import version
 from metrics.frontend.options import Options
 from metrics.packages.amwg.derivations import *
 from metrics.packages.common.diagnostic_groups import *
+from metrics.frontend.plots import *
 import metrics.packages
 
 from pprint import pprint
