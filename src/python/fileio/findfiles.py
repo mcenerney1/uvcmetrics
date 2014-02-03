@@ -202,6 +202,14 @@ class dirtree_datafiles( basic_datafiles ):
       if ftid is None:
          ftid = self.short_name()
 
+      try:
+         print 'self.opts is:'
+         print self.opts
+         print 'done self.opts printing'
+      except:
+         print 'no self.opts??????????????????????????????????????????????????????'
+         print self
+
       cache_path = os.path.expanduser(cache_path)
       cache_path = os.path.abspath(cache_path)
       datafile_ls = [ f+'size'+str(os.path.getsize(f))+'mtime'+str(os.path.getmtime(f))\
@@ -223,7 +231,7 @@ class dirtree_datafiles( basic_datafiles ):
       else:
          cached = False
       if cached==False:
-         filetable = basic_filetable( self, ftid, cache_path=cache_path )
+         filetable = basic_filetable( self, self.opts, ftid, cache_path=cache_path )
          f = open(cachefile,'wb')
          pickle.dump( filetable, f )
          f.close()
