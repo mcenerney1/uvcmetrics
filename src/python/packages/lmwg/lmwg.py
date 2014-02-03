@@ -90,9 +90,11 @@ class lmwg_plot_set1(lmwg_plot_spec):
 
          self._var_baseid = '_'.join([varid, 'set1'])
          self.plot1_id = filetable1._id+'_'+varid
-         self.plot2_id = filetable2._id+'_'+varid
-         self.plot3_id = filetable1._id+' - '+filetable2._id+'_'+varid
-         self.plotall_id = filetable1._id+'_'+filetable2._id+'_'+varid
+         self.plotall_id = self.plot1_id
+         if(filetable2 != None):
+            self.plot2_id = filetable2._id+'_'+varid
+            self.plot3_id = filetable1._id+' - '+filetable2._id+'_'+varid
+            self.plotall_id = filetable1._id+'_'+filetable2._id+'_'+varid
 
          print 'about to plan compute'
          if not self.computation_planned:
@@ -127,41 +129,42 @@ class lmwg_plot_set1(lmwg_plot_spec):
          print 'DONE with pre-plan'
       else:
          print 'PLAN COMPUTATION CALLED args:', filetable1, filetable2, varid, seasonid
-         self.reduced_variables = {
-            varid+'_1':reduced_variable(
+         self.reduced_variables[varid+'_1'] = reduced_variable(
                variableid = varid, filetable=filetable1, reduced_var_id=varid+'_1',
-               reduction_function=(lambda x, vid: reduceAnnTrend(x, vid))),
-            varid+'_2':reduced_variable(
+               reduction_function=(lambda x, vid: reduceAnnTrend(x, vid)))
+
+         if(filetable2 != None):
+            self.reduced_variable[varid+'_2'] = reduced_variable(
                variableid = varid, filetable=filetable2, reduced_var_id=varid+'_2',
                reduction_function=(lambda x, vid: reduceAnnTrend(x, vid)))
-         }
 
-         self.derived_variables = {
-            'PREC_1': derived_var(vid='PREC_1', inputs=['RAIN_1', 'SNOW_1'], func=aplusb),
-            'PREC_2': derived_var(vid='PREC_2', inputs=['RAIN_2', 'SNOW_2'], func=aplusb)
-         }
-         self.single_plotspecs = {
-            self.plot1_id: plotspec(
+         self.derived_variables['PREC_1'] = derived_var(vid='PREC_1', inputs=['RAIN_1', 'SNOW_1'], func=aplusb)
+         if(filetable2 != None):
+            self.derived_variables['PREC_2'] = derived_var(vid='PREC_2', inputs=['RAIN_2', 'SNOW_2'], func=aplusb)
+
+         self.single_plotspecs[self.plot1_id] = plotspec(
                vid=varid+'_1',
                zvars = [varid+'_1'], zfunc=(lambda z: z),
-               plottype = self.plottype) } #,
-#            self.plot2_id: plotspec(
-#               vid=varid+'_2',
-#               zvars = [varid+'_2'], zfunc=(lambda z: z),
-#               plottype = self.plottype) }
-#            self.plot3_id: plotspec(
-#               vid=varid+'_1',
-#               zvars = [varid+'_1', varid+'_2'], zfunc=aminusb,
-#               plottype = self.plottype) }
-#            }
-         self.composite_plotspecs = {
-#               self.plotall_id: [self.plot1_id, self.plot2_id, self.plot3_id] 
-               self.plotall_id: [self.plot1_id]
-         }
+               plottype = self.plottype) 
+         if(filetable2 != None):
+            self.single_plotspecs[self.plot2_id] = plotspec(
+               vid=varid+'_2',
+               zvars = [varid+'_2'], zfunc=(lambda z: z),
+               plottype = self.plottype) 
+            self.single_plotspecs[self.plot3_id] = plotspec(
+               vid=varid+'_1',
+               zvars = [varid+'_1', varid+'_2'], zfunc=aminusb,
+               plottype = self.plottype) 
+
+         self.composite_plotspecs[self.plotall_id] = [self.plot1_id]
+         if(filetable2 != None):
+            self.composite_plotspecs[self.plotall_id].append(self.plot2_id)
+            self.composite_plotspecs[self.plotall_id].append(self.plot3_id)
 
          self.computation_planned = True
 
    def _results(self):
+      print 'IN RESULTS'
       results = plot_spec._results(self)
       if results is None: return None
       return self.plotspec_values[self.plotall_id]
@@ -274,6 +277,7 @@ class lmwg_plot_set2(lmwg_plot_spec):
          self.computation_planned = True
 
    def _results(self):
+      print 'IN RESULTS2'
       results = plot_spec._results(self)
       if results is None: return None
       return self.plotspec_values[self.plotall_id]
